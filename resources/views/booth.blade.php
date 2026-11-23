@@ -71,8 +71,12 @@
                             <span class="hud-chip hud-ai" id="filter-status">Menyiapkan filter AI...</span>
                         </div>
 
-                        {{-- tombol cepat kamera: putar kamera & matikan/nyalakan --}}
+                        {{-- tombol cepat kamera: panduan, putar kamera, matikan/nyalakan --}}
                         <div class="viewport-controls">
+                            <button class="vp-btn" id="tour-button" type="button"
+                                    title="Panduan singkat" aria-label="Buka panduan singkat">
+                                <i class="fa-solid fa-circle-question"></i>
+                            </button>
                             <button class="vp-btn" id="flip-button" type="button"
                                     title="Putar kamera (depan/belakang)" aria-label="Putar kamera">
                                 <i class="fa-solid fa-camera-rotate"></i>
@@ -336,6 +340,8 @@
 
     <script defer src="{{ asset('js/face-filter.js') }}?v={{ filemtime(public_path('js/face-filter.js')) }}"></script>
     <script defer src="{{ asset('js/strip.js') }}?v={{ filemtime(public_path('js/strip.js')) }}"></script>
+    <script defer src="{{ asset('js/tour.js') }}?v={{ filemtime(public_path('js/tour.js')) }}"></script>
+    <script defer src="{{ asset('js/pwa-install.js') }}?v={{ filemtime(public_path('js/pwa-install.js')) }}"></script>
     <script defer src="{{ asset('js/booth.js') }}?v={{ filemtime(public_path('js/booth.js')) }}"></script>
 
     @include('partials.animations-scripts')

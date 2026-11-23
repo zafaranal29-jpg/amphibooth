@@ -50,7 +50,16 @@ Photo booth imut berbasis web: satu sesi **1–4 jepretan** jadi **satu strip ve
 - Command `php artisan photos:prune` (ada `--dry-run`) untuk membuang file yatim di folder foto.
 - Helper `python storage/backfill-thumbs.py` (dry-run default, `--apply` buat jalan) untuk bikin thumbnail strip lama yang belum punya.
 - Tema pastel, halaman error custom 404/419/500, favicon sendiri, layout mobile dengan bottom sheet.
-- **PWA ringan** — `manifest.webmanifest` + ikon 192/512 (maskable) + `theme-color`: bisa "Add to Home Screen" dan kebuka fullscreen tanpa address bar. Tanpa service worker (booth butuh kamera + server, cache offline cuma bikin bug).
+- **PWA ringan** — `manifest.webmanifest` + ikon 192/512 (maskable) + `theme-color`: bisa
+  "Add to Home Screen" dan kebuka fullscreen tanpa address bar.
+- **Banner pasang di HP** — `beforeinstallprompt` ditahan dulu, tombol "Pasang 📲" baru
+  memanggil prompt-nya (tidak ada popup mendadak). Tombol "Nanti" menyimpan pilihan 14 hari.
+- **Service worker konservatif** (`public/sw.js`) — network-first; cache cuma dipakai saat
+  jaringan gagal. Foto pribadi (`/images/photos`), API `/collages`, halaman `/booth` dan
+  `/gallery` **tidak** pernah di-cache, jadi tidak ada data akun yang tertinggal di disk.
+- **Panduan 5 langkah** (`public/js/tour.js`) — muncul sekali di kunjungan pertama, menyorot
+  area kamera → jumlah pose → tombol jepret → upload galeri → cara hias & simpan. Bisa
+  diputar ulang dari tombol "?" di kanan bawah viewport; Esc atau "Lewati" buat nutup.
 - **Shortcut keyboard** — `Spasi` = jepret/lanjut, `R` = ulangi semua; diabaikan saat fokus di input caption.
 
 ## Kebutuhan

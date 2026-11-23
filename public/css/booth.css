@@ -434,6 +434,176 @@ body {
     cursor: not-allowed;
 }
 
+/* ==========================================================================
+   PANDUAN SINGKAT (onboarding)
+   ========================================================================== */
+.tour-layer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    /* 100dvh = tinggi yang benar-benar kelihatan di HP (ikut turun-naiknya
+       address bar). Kalau browser belum dukung dvh, JS di tour.js yang
+       menyetel tinggi pakai visualViewport. */
+    height: 100vh;
+    height: 100dvh;
+    z-index: 60;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 16px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    background: rgba(60, 40, 32, 0.32);
+    overflow-y: auto;
+}
+
+.tour-card {
+    width: min(460px, 100%);
+    max-height: 100%;
+    overflow-y: auto;
+    background: #FFFDF9;
+    border: 3px solid #795548;
+    border-radius: 22px;
+    box-shadow: 0 14px 0 rgba(121, 85, 72, 0.18);
+    padding: 16px 18px 14px;
+    font-family: 'Quicksand', sans-serif;
+    color: #5D4037;
+    outline: none;
+}
+
+.tour-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+.tour-step {
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: #A1887F;
+}
+
+.tour-dots {
+    display: flex;
+    gap: 5px;
+}
+
+.tour-dots i {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background-color: #E3D5CB;
+    transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.tour-dots i.on {
+    background-color: #FF69B4;
+    transform: scale(1.25);
+}
+
+.tour-card h3 {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1.15rem;
+    color: #795548;
+    margin: 0 0 6px;
+}
+
+.tour-card p {
+    font-size: 0.92rem;
+    line-height: 1.5;
+    margin: 0 0 14px;
+}
+
+.tour-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.tour-next {
+    background-color: #FFC0CB;
+    border-color: #795548;
+    color: #5D4037;
+    font-weight: 700;
+}
+
+/* Elemen yang sedang dibahas: outline saja, tidak geser layout. */
+.tour-spot {
+    outline: 3px dashed #FF69B4;
+    outline-offset: 4px;
+    border-radius: 14px;
+}
+
+@media (max-width: 480px) {
+    .tour-card {
+        padding: 14px 14px 12px;
+    }
+
+    .tour-card p {
+        font-size: 0.88rem;
+    }
+}
+
+/* ==========================================================================
+   BANNER "PASANG DI HP" (PWA)
+   ========================================================================== */
+.install-banner {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 10px 0 0;
+    padding: 10px 14px;
+    background-color: #FFFFFF;
+    border: 3px dashed #FFC0CB;
+    border-radius: 18px;
+    font-family: 'Quicksand', sans-serif;
+    color: #5D4037;
+}
+
+.install-banner.show {
+    display: flex;
+}
+
+.install-banner > i {
+    font-size: 1.2rem;
+    color: #FF69B4;
+}
+
+.install-text {
+    flex: 1 1 190px;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.3;
+}
+
+.install-text b {
+    font-family: 'Fredoka', sans-serif;
+    color: #795548;
+    font-size: 0.98rem;
+}
+
+.install-text span {
+    font-size: 0.8rem;
+    color: #8D6E63;
+}
+
+.install-no {
+    border: none;
+    background: none;
+    padding: 6px 4px;
+    font-family: 'Quicksand', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #A1887F;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
 .slot {
     position: relative;
     aspect-ratio: 4 / 3;

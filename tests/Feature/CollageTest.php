@@ -333,9 +333,38 @@ class CollageTest extends TestCase
             ->get('/booth')
             ->assertOk()
             ->assertSee('strip.js', false)
-            ->assertSee('data-slot="2"', false);
+            ->assertSee('data-slot="2"', false)
+            // fitur baru: panduan, tombol kamera cepat, upload galeri, jumlah pose
+            ->assertSee('tour.js', false)
+            ->assertSee('pwa-install.js', false)
+            ->assertSee('id="tour-button"', false)
+            ->assertSee('id="camera-power"', false)
+            ->assertSee('id="upload-input"', false)
+            ->assertSee('data-poses="4"', false);
 
         $this->get('/demo')->assertOk()->assertSee('Mode coba-coba');
+    }
+
+    public function test_file_pwa_ada_di_public(): void
+    {
+        // Test HTTP tidak melayani file statis (Apache yang biasanya), jadi
+        // yang dijaga di sini: filenya benar-benar ada dan isinya masuk akal.
+        $this->assertFileExists(public_path('manifest.webmanifest'));
+        $this->assertFileExists(public_path('sw.js'));
+        $this->assertFileExists(public_path('icon-192.png'));
+        $this->assertFileExists(public_path('icon-512.png'));
+
+        $manifest = json_decode((string) file_get_contents(public_path('manifest.webmanifest')), true);
+
+        $this->assertStringStartsWith('Amphibooth', $manifest['name']);
+        $this->assertSame('standalone', $manifest['display']);
+
+        $sw = (string) file_get_contents(public_path('sw.js'));
+
+        $this->assertStringContainsString('amphibooth-v', $sw);
+        // Foto pribadi & halaman akun tidak boleh ikut di-cache.
+        $this->assertStringContainsString("'/images/photos'", $sw);
+        $this->assertStringContainsString("'/booth'", $sw);
     }
 
     public function test_command_prune_menghapus_file_nyasar_saja(): void

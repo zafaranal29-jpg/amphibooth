@@ -23,5 +23,8 @@
     // Lebar thumbnail yang dibuat browser sebelum dikirim (sama dengan
     // config('amphibooth.thumb_width')).
     'thumbWidth' => (int) config('amphibooth.thumb_width', 360),
+    // Service worker + manifest: dipakai pwa-install.js (pasang di HP & offline).
+    'swUrl' => asset('sw.js'),
+    'manifestUrl' => asset('manifest.webmanifest'),
 ], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}
 </script>
