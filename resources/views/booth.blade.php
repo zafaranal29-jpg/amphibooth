@@ -19,6 +19,7 @@
     @include('partials.app-config', ['demo' => $demo ?? false])
 
     @include('partials.animations-head')
+    @include('partials.pwa')
 </head>
 
 <body class="{{ ($demo ?? false) ? 'is-demo' : '' }}" data-page="booth">

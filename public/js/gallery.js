@@ -111,7 +111,8 @@
                 thumbLink.appendChild(note);
             } else {
                 const image = document.createElement('img');
-                image.src = collage.url;
+                // thumb_url = versi kecil (~30 KB) buat kartu; klik tetap buka lembar penuh.
+                image.src = collage.thumb_url || collage.url;
                 image.alt = 'Strip Amphibooth ' + collage.layout_label;
                 image.loading = 'lazy';
                 thumbLink.appendChild(image);

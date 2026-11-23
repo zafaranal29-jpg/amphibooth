@@ -24,6 +24,7 @@
     <link rel="stylesheet" href="{{ asset('css/landing.css') }}?v={{ filemtime(public_path('css/landing.css')) }}">
 
     @include('partials.animations-head')
+    @include('partials.pwa')
 </head>
 <body data-page="landing">
 

@@ -47,6 +47,41 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Kuota per user
+    |--------------------------------------------------------------------------
+    | Batas biar satu akun tidak menghabiskan disk hosting gratis (alwaysdata
+    | free cuma 1 GB). Dihitung dari jumlah strip + total byte lembar, shot
+    | mentah, dan thumbnail-nya.
+    |
+    | 60 MB itu kira-kira 120-150 strip, karena satu sesi sekarang disimpan
+    | sebagai: lembar JPEG ~150-200 KB + 3 shot ~75 KB + thumbnail ~30 KB.
+    */
+    'quota_strips' => (int) env('QUOTA_STRIPS', 90),
+    'quota_mb' => (int) env('QUOTA_MB', 60),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Kuota total booth (semua user)
+    |--------------------------------------------------------------------------
+    | Pagar terakhir supaya disk hosting tidak penuh gara-gara banyak akun.
+    | Kalau folder foto sudah melewati batas ini, siapa pun tidak bisa
+    | menyimpan strip baru sampai ada yang dihapus. Sisain ruang buat
+    | database, log, dan sistem.
+    */
+    'quota_total_mb' => (int) env('QUOTA_TOTAL_MB', 700),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Ukuran thumbnail gallery
+    |--------------------------------------------------------------------------
+    | Thumbnail dibuat di browser (canvas) waktu menyimpan strip, jadi server
+    | tidak butuh ekstensi GD. Lebar 360 px cukup buat kartu gallery.
+    */
+    'thumb_width' => (int) env('THUMB_WIDTH', 360),
+    'max_thumb_kb' => (int) env('THUMB_MAX_KB', 512),
+
+    /*
+    |--------------------------------------------------------------------------
     | Kontak
     |--------------------------------------------------------------------------
     | Ditampilkan di halaman catatan privasi.

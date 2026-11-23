@@ -87,7 +87,9 @@ check "GET /collages kosong" "$IDX" '"total":0'
 # --- 5. simpan strip 3 foto ---
 PNG='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg=='
 DATAURL="data:image/png;base64,$PNG"
-PAYLOAD=$(printf '{"layout":"strip3","frame":"polaroid","frame_color":"#ffb3c7","caption":"Smoke strip","date_stamp":true,"shots":["%s","%s","%s"],"sheet":"%s"}' "$DATAURL" "$DATAURL" "$DATAURL" "$DATAURL")
+# thumb = versi kecil yang dibuat browser; ikut dikirim supaya jalur
+# thumbnail (kartu gallery) ikut teruji.
+PAYLOAD=$(printf '{"layout":"strip3","frame":"polaroid","frame_color":"#ffb3c7","caption":"Smoke strip","date_stamp":true,"shots":["%s","%s","%s"],"sheet":"%s","thumb":"%s"}' "$DATAURL" "$DATAURL" "$DATAURL" "$DATAURL" "$DATAURL")
 
 STORE=$(curl -s -b "$JAR" -H "Accept: application/json" -H "Content-Type: application/json" \
     -H "X-CSRF-TOKEN: $API_TOKEN" \
@@ -102,7 +104,8 @@ check "collage dapat id" "$COLLAGE_ID" "$COLLAGE_ID"
 check "share token dibuat" "$SHARE_TOKEN" "$SHARE_TOKEN"
 
 FILES_AFTER=$(ls "$PHOTO_DIR" | wc -l)
-check "4 file tersimpan (1 lembar + 3 shot)" "$((FILES_AFTER - FILES_BEFORE))" "4"
+check "5 file tersimpan (1 lembar + 1 thumb + 3 shot)" "$((FILES_AFTER - FILES_BEFORE))" "5"
+check "thumbnail berupa file kecil (< 120 KB)"     "$(ls -l "$PHOTO_DIR"/thumb_*.jpg 2>/dev/null | awk '{ if ($5 < 122880) print "kecil"; else print "besar" }' | head -1)" "kecil"
 
 # --- 6. love + filter ---
 LOVE=$(curl -s -b "$JAR" -H "Accept: application/json" -H "X-CSRF-TOKEN: $API_TOKEN" \
@@ -156,7 +159,8 @@ PROFILE_HTML=$(curl -s -b "$JAR" "$BASE/profile")
 check "GET /profile 200" "$(curl -s -b "$JAR" -o /dev/null -w '%{http_code}' "$BASE/profile")" "200"
 check "profil punya zona bahaya" "$PROFILE_HTML" "Hapus semua data"
 check "profil nampilin kuota" "$PROFILE_HTML" "Kuota kamu"
-check "kuota strip default 100" "$PROFILE_HTML" "/ 100"
+QUOTA_STRIPS_EXPECTED=$(php artisan tinker --execute="echo config('amphibooth.quota_strips');" 2>/dev/null | tr -d '[:space:]')
+check "kuota strip default $QUOTA_STRIPS_EXPECTED" "$PROFILE_HTML" "/ $QUOTA_STRIPS_EXPECTED"
 
 RENAME=$(curl -s -b "$JAR" -o /dev/null -D - -X POST "$BASE/profile" \
     --data-urlencode "_token=$API_TOKEN" --data-urlencode "_method=PATCH" \

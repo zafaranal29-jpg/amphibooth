@@ -68,7 +68,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Total byte file milik user: lembar + shot mentah yang masih ada di disk.
+     * Total byte file milik user: lembar + shot mentah + thumbnail yang masih ada di disk.
      */
     public function usedBytes(): int
     {
@@ -77,6 +77,10 @@ class User extends Authenticatable
         foreach ($this->collages()->with('photos')->get() as $collage) {
             if ($collage->exists()) {
                 $bytes += File::size($collage->path());
+            }
+
+            if ($collage->hasThumb()) {
+                $bytes += File::size($collage->thumbPath());
             }
 
             foreach ($collage->photos as $photo) {
@@ -90,11 +94,31 @@ class User extends Authenticatable
     }
 
     /**
+     * Total byte seluruh folder foto (semua user) — dipakai buat kuota booth.
+     */
+    public function globalUsedBytes(): int
+    {
+        $directory = rtrim((string) config('amphibooth.photos_path'), '/\\');
+
+        if (! File::isDirectory($directory)) {
+            return 0;
+        }
+
+        $bytes = 0;
+
+        foreach (File::files($directory) as $file) {
+            $bytes += $file->getSize();
+        }
+
+        return $bytes;
+    }
+
+    /**
      * Batas jumlah strip per akun.
      */
     public function quotaStrips(): int
     {
-        return max(1, (int) config('amphibooth.quota_strips', 100));
+        return max(1, (int) config('amphibooth.quota_strips', 90));
     }
 
     /**
@@ -102,15 +126,33 @@ class User extends Authenticatable
      */
     public function quotaBytes(): int
     {
-        return max(1, (int) config('amphibooth.quota_mb', 200)) * 1048576;
+        return max(1, (int) config('amphibooth.quota_mb', 60)) * 1048576;
+    }
+
+    /**
+     * Batas penyimpanan seluruh booth (byte).
+     */
+    public function globalQuotaBytes(): int
+    {
+        return max(1, (int) config('amphibooth.quota_total_mb', 700)) * 1048576;
     }
 
     /**
      * Cek apakah masih ada jatah untuk sesi baru. Balikin pesan penolakan
      * (siap ditampilkan ke user) atau null kalau masih muat.
+     *
+     * Urutan: kuota booth dulu (yang menyelamatkan disk hosting), baru
+     * kuota akun.
      */
     public function quotaBlocker(int $extraBytes = 0): ?string
     {
+        $globalUsed = $this->globalUsedBytes();
+
+        if ($globalUsed + $extraBytes > $this->globalQuotaBytes()) {
+            return 'Storage booth sudah penuh ('.config('amphibooth.quota_total_mb')
+                .' MB terpakai semua akun). Coba hapus beberapa strip lama dulu ya 🧹';
+        }
+
         if ($this->collages()->count() >= $this->quotaStrips()) {
             return 'Kuota strip kamu sudah penuh ('.$this->quotaStrips()
                 .' strip). Hapus beberapa strip di gallery dulu ya 🧹';
@@ -127,7 +169,7 @@ class User extends Authenticatable
     /**
      * Ringkasan pemakaian kuota buat halaman profil.
      *
-     * @return array{strips:int, strips_quota:int, strips_percent:int, bytes:int, bytes_quota:int, bytes_percent:int}
+     * @return array{strips:int, strips_quota:int, strips_percent:int, bytes:int, bytes_quota:int, bytes_percent:int, global_bytes:int, global_quota:int, global_percent:int}
      */
     public function quotaUsage(): array
     {
@@ -135,6 +177,8 @@ class User extends Authenticatable
         $stripsQuota = $this->quotaStrips();
         $bytes = $this->usedBytes();
         $bytesQuota = $this->quotaBytes();
+        $globalBytes = $this->globalUsedBytes();
+        $globalQuota = $this->globalQuotaBytes();
 
         return [
             'strips' => $strips,
@@ -143,6 +187,9 @@ class User extends Authenticatable
             'bytes' => $bytes,
             'bytes_quota' => $bytesQuota,
             'bytes_percent' => (int) min(100, round($bytes / $bytesQuota * 100)),
+            'global_bytes' => $globalBytes,
+            'global_quota' => $globalQuota,
+            'global_percent' => (int) min(100, round($globalBytes / $globalQuota * 100)),
         ];
     }
 

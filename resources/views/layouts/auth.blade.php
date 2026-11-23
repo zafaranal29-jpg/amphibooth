@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="{{ asset('css/login.css') }}?v={{ filemtime(public_path('css/login.css')) }}">
 
     @include('partials.animations-head')
+    @include('partials.pwa')
 </head>
 <body data-page="auth">
 

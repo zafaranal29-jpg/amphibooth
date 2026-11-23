@@ -32,6 +32,7 @@ class CollageController extends Controller
             'data' => collect($collages->items())->map(fn (Collage $collage) => [
                 'id' => $collage->id,
                 'url' => $collage->url(),
+                'thumb_url' => $collage->thumbUrl(),
                 'download_url' => $collage->url(),
                 'download_name' => $collage->downloadName(),
                 'share_url' => $collage->shareUrl(),
@@ -68,6 +69,7 @@ class CollageController extends Controller
             'shots' => ['required', 'array', 'min:1', 'max:3'],
             'shots.*' => ['required', 'string'],
             'sheet' => ['required', 'string'],
+            'thumb' => ['nullable', 'string'],
         ], [
             'layout.in' => 'Layout-nya belum didukung.',
             'frame.in' => 'Frame yang dipilih tidak dikenal.',
@@ -86,8 +88,17 @@ class CollageController extends Controller
 
         $maxSheetBytes = (int) config('amphibooth.max_upload_kb', 8192) * 1024;
         $maxShotBytes = (int) config('amphibooth.max_shot_kb', 2048) * 1024;
+        $maxThumbBytes = (int) config('amphibooth.max_thumb_kb', 512) * 1024;
 
         $sheet = $this->decodeImage($data['sheet'], $maxSheetBytes, 'lembar');
+
+        // Thumbnail kecil buat kartu gallery (dibuat di browser, opsional:
+        // kalau browser lama tidak bisa, gallery pakai lembar penuh).
+        $thumb = null;
+
+        if (! empty($data['thumb'])) {
+            $thumb = $this->decodeImage($data['thumb'], $maxThumbBytes, 'thumbnail');
+        }
 
         $shots = [];
 
@@ -107,6 +118,10 @@ class CollageController extends Controller
             $incoming += strlen($shot['binary']);
         }
 
+        if ($thumb) {
+            $incoming += strlen($thumb['binary']);
+        }
+
         if ($blocker = $user->quotaBlocker($incoming)) {
             return response()->json([
                 'success' => false,
@@ -119,6 +134,11 @@ class CollageController extends Controller
         $sheetName = 'strip_'.$user->id.'_'.Str::lower(Str::random(14)).'.'.$sheet['extension'];
         $shotNames = [];
 
+        // Namanya diturunkan dari lembar supaya Collage::thumbName() konsisten.
+        $thumbName = $thumb
+            ? 'thumb_'.pathinfo($sheetName, PATHINFO_FILENAME).'.jpg'
+            : null;
+
         foreach ($shots as $index => $shot) {
             $shotNames[$index] = 'shot_'.$user->id.'_'.($index + 1).'_'.Str::lower(Str::random(10)).'.'.$shot['extension'];
         }
@@ -126,6 +146,11 @@ class CollageController extends Controller
         try {
             File::put($directory.DIRECTORY_SEPARATOR.$sheetName, $sheet['binary']);
             $written[] = $directory.DIRECTORY_SEPARATOR.$sheetName;
+
+            if ($thumb && $thumbName) {
+                File::put($directory.DIRECTORY_SEPARATOR.$thumbName, $thumb['binary']);
+                $written[] = $directory.DIRECTORY_SEPARATOR.$thumbName;
+            }
 
             foreach ($shots as $index => $shot) {
                 File::put($directory.DIRECTORY_SEPARATOR.$shotNames[$index], $shot['binary']);
@@ -177,6 +202,7 @@ class CollageController extends Controller
             'collage' => [
                 'id' => $collage->id,
                 'url' => $collage->url(),
+                'thumb_url' => $collage->thumbUrl(),
                 'download_url' => $collage->url(),
                 'download_name' => $collage->downloadName(),
                 'share_url' => $collage->shareUrl(),

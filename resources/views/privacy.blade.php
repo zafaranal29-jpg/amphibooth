@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="{{ asset('css/legal.css') }}?v={{ filemtime(public_path('css/legal.css')) }}">
 
     @include('partials.animations-head')
+    @include('partials.pwa')
 </head>
 <body data-page="privacy">
 

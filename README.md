@@ -11,13 +11,14 @@ Photo booth imut berbasis web: satu sesi **3 jepretan** jadi **satu strip vertik
 - **Caption custom + date stamp** — ikut tergambar di lembar hasil.
 - **Efek foto** — Original, Hangat, B&W, Vintage, Dreamy, Alien (diterapkan ke semua sel).
 - **Download JPG** (render 1.5× untuk cetak) + **Print** (print CSS: cuma lembarnya yang keluar) + info ukuran file & batas cetak 300 dpi di layar hasil.
+- **Simpan ringkas** — yang dikirim ke server bukan render 1.5×: lembar 760 px + shot 960 px + thumbnail 360 px, jadi satu sesi ± 400–600 KB (unduhan tetap dirender ulang 1.5× di browser).
 
 **Kamera & filter**
 - **Filter wajah** — MediaPipe FaceMesh 478 titik, stiker mengikuti roll/yaw/jarak kepala, plus indikator status AI.
 - **Pengaturan kamera** — pilih sumber kamera, kualitas (Standar/HD), lama hitungan (3/5/tanpa), toggle cermin, toggle suara shutter & beep.
 
 **Gallery & share**
-- **Gallery per strip** — kartu menampilkan lembar utuh + badge layout, tanggal, caption; aksi love, download, salin link share, hapus (benar-benar menghapus baris DB + file).
+- **Gallery per strip** — kartu pakai **thumbnail ~35 KB** (dibuat browser, bukan GD) supaya 12 kartu tidak menarik file lembar penuh; badge layout, tanggal, caption; aksi love, download, salin link share, hapus (benar-benar menghapus baris DB + file).
 - **Link share publik** `/p/{token}` + **OG image**, jadi preview WhatsApp/Twitter langsung menampilkan strip-nya.
 - **Mode demo** `/demo` — coba booth tanpa akun (bisa unduh, tidak disimpan) dan hasilnya otomatis **ada watermark** + ajakan daftar biar bersih.
 - **Halaman profil** `/profile` — ringkasan data (jumlah strip, love, foto mentah, MB terpakai), ganti nama, ganti password (wajib password lama), dan zona bahaya **hapus semua data** (butuh konfirmasi password, file mentahnya ikut dibersihkan).
@@ -34,10 +35,13 @@ Photo booth imut berbasis web: satu sesi **3 jepretan** jadi **satu strip vertik
 
 **Keamanan & rapi-rapi**
 - Halaman utama di balik guard `auth`, CSRF di semua form/fetch, validasi base64 + MIME + dimensi + ukuran, otorisasi per-strip (403 kalau bukan pemilik), throttle simpan 20x/menit.
-- **Kuota per user** — 100 strip / 200 MB (bisa diatur lewat `QUOTA_STRIPS` & `QUOTA_MB`), dicek sebelum file ditulis, sisa kuota tampil di profil.
+- **Kuota per user** — 90 strip / 60 MB (`QUOTA_STRIPS`, `QUOTA_MB`), dicek sebelum file ditulis (lembar + thumbnail + shot), sisa kuota tampil di profil.
+- **Kuota booth (global)** — 700 MB untuk semua akun (`QUOTA_TOTAL_MB`), supaya disk hosting tidak penuh; kalau penuh, penyimpanan baru ditolak dengan pesan jelas dan profil menampilkan pemakaian global.
 - **Foto mentah tidak publik** — `public/images/photos/.htaccess` menutup akses `shot_*` (403) dan memasang `X-Robots-Tag: noindex`; `robots.txt` menyembunyikan halaman privat.
 - Command `php artisan photos:prune` (ada `--dry-run`) untuk membuang file yatim di folder foto.
 - Tema pastel, halaman error custom 404/419/500, favicon sendiri, layout mobile dengan bottom sheet.
+- **PWA ringan** — `manifest.webmanifest` + ikon 192/512 (maskable) + `theme-color`: bisa "Add to Home Screen" dan kebuka fullscreen tanpa address bar. Tanpa service worker (booth butuh kamera + server, cache offline cuma bikin bug).
+- **Shortcut keyboard** — `Spasi` = jepret/lanjut, `R` = ulangi semua; diabaikan saat fokus di input caption.
 
 ## Kebutuhan
 

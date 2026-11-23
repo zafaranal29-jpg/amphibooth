@@ -378,4 +378,66 @@ class CollageTest extends TestCase
         $this->assertSame(1, $user->collages()->count());
         $this->assertCount(1, File::files($this->photoDirectory));
     }
+
+    public function test_kuota_booth_global_menolak_simpan_walau_kuota_user_masih_legas(): void
+    {
+        // Booth penuh: 1 MB total, dan sudah ada 2 MB file (milik siapa saja,
+        // termasuk file nyasar tanpa baris DB).
+        config(['amphibooth.quota_total_mb' => 1, 'amphibooth.quota_mb' => 200]);
+
+        File::put(
+            $this->photoDirectory.DIRECTORY_SEPARATOR.'strip_999_legacy.jpg',
+            str_repeat('x', 2 * 1048576)
+        );
+
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->postJson('/collages', $this->payload())
+            ->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', fn ($message) => str_contains($message, 'Storage booth'));
+
+        $this->assertSame(0, $user->collages()->count());
+    }
+
+    public function test_thumbnail_disimpan_dan_ikut_dihapus(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)
+            ->postJson('/collages', $this->payload(['thumb' => $this->dataUrl()]))
+            ->assertCreated();
+
+        $collage = Collage::firstOrFail();
+
+        $this->assertFileExists($collage->thumbPath());
+        $this->assertStringContainsString('thumb_', $collage->thumbName());
+        $this->assertStringContainsString('thumb_', $response->json('collage.thumb_url'));
+
+        // Gallery memakai thumbnail, bukan lembar penuh.
+        $this->actingAs($user)
+            ->getJson('/collages')
+            ->assertOk()
+            ->assertJsonPath('data.0.thumb_url', $collage->thumbUrl());
+
+        // Hapus strip: file thumbnail ikut hilang.
+        $this->actingAs($user)->deleteJson('/collages/'.$collage->id)->assertOk();
+
+        $this->assertFileDoesNotExist($this->photoDirectory.DIRECTORY_SEPARATOR.$collage->thumbName());
+    }
+
+    public function test_strip_tanpa_thumbnail_tetap_jalan(): void
+    {
+        $user = User::factory()->create();
+
+        // Browser lama / klien lain boleh tidak mengirim thumb: gallery
+        // jatuh ke lembar penuh, bukan error.
+        $this->actingAs($user)->postJson('/collages', $this->payload())->assertCreated();
+
+        $collage = Collage::firstOrFail();
+
+        $this->assertFalse($collage->hasThumb());
+        $this->assertSame($collage->url(), $collage->thumbUrl());
+    }
 }

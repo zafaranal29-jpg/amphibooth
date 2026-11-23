@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="{{ asset('css/profile.css') }}?v={{ filemtime(public_path('css/profile.css')) }}">
 
     @include('partials.animations-head')
+    @include('partials.pwa')
 </head>
 <body data-page="profile">
 
@@ -87,6 +88,18 @@
                 <div class="quota-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100"
                      aria-valuenow="{{ $stats['quota']['bytes_percent'] }}">
                     <span style="width: {{ $stats['quota']['bytes_percent'] }}%"></span>
+                </div>
+            </div>
+
+            {{-- Kuota booth: dipakai semua akun, bukan cuma kamu. --}}
+            <div class="quota-row">
+                <div class="quota-label">
+                    <span>Storage booth (semua user)</span>
+                    <strong>{{ number_format($stats['quota']['global_bytes'] / 1048576, 1) }} MB / {{ number_format($stats['quota']['global_quota'] / 1048576, 0) }} MB</strong>
+                </div>
+                <div class="quota-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100"
+                     aria-valuenow="{{ $stats['quota']['global_percent'] }}">
+                    <span style="width: {{ $stats['quota']['global_percent'] }}%"></span>
                 </div>
             </div>
         </section>

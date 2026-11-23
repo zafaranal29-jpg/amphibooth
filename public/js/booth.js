@@ -23,6 +23,15 @@
     const LAYOUT = 'strip3';
     const PAUSE_BETWEEN_SHOTS = 850;
 
+    /*
+     * Batas ukuran yang DIKIRIM ke server (bukan yang tampil di layar).
+     * Kamera menangkap di 1280 px dan lembar dirender 1.5x (1140 px),
+     * tapi penyimpanan cukup versi ringkas: unduhan tetap dirender ulang
+     * 1.5x dari shot yang masih ada di memori.
+     */
+    const SHOT_MAX_WIDTH = 960;
+    const SHEET_MAX_WIDTH = 760;
+
     document.addEventListener('DOMContentLoaded', function () {
         // ---------- ELEMEN ----------
         const video = document.getElementById('video-feed');
@@ -904,10 +913,86 @@
         });
 
         // ----------------------------------------------
+        // SHORTCUT KEYBOARD (desktop)
+        // ----------------------------------------------
+        // Spasi = jepret / lanjut, R = ulangi semua. Diabaikan kalau fokus
+        // di input/select (biar ngetik caption tetap normal) atau kalau
+        // tombol lain lagi fokus — supaya spasi tetap "mencet" tombol itu.
+        document.addEventListener('keydown', function (event) {
+            if (event.metaKey || event.ctrlKey || event.altKey) {
+                return;
+            }
+
+            const target = event.target;
+            const tag = (target.tagName || '').toLowerCase();
+
+            if (tag === 'input' || tag === 'textarea' || tag === 'select' || target.isContentEditable) {
+                return;
+            }
+
+            if (event.key === ' ' || event.code === 'Space') {
+                if (document.activeElement && document.activeElement.tagName === 'BUTTON') {
+                    return;
+                }
+
+                if (!shutterButton.disabled) {
+                    event.preventDefault();
+                    shutterButton.click();
+                }
+
+                return;
+            }
+
+            if (event.key === 'r' || event.key === 'R') {
+                if (!restartButton.hidden && !restartButton.disabled) {
+                    event.preventDefault();
+                    restartButton.click();
+                }
+            }
+        });
+
+        // ----------------------------------------------
         // SIMPAN
         // ----------------------------------------------
         function dataUrlOf(canvas, quality) {
             return canvas.toDataURL('image/jpeg', quality || 0.88);
+        }
+
+        /**
+         * JPEG dengan lebar maksimum tertentu.
+         *
+         * Kamera menangkap di HD (1280 px) dan lembar dirender 1.5x buat
+         * layar/print, tapi yang dikirim ke server cukup versi ringkas:
+         * unduhan tetap dirender ulang 1.5x dari shot asli di memori.
+         * Ini yang bikin satu sesi turun dari ~880 KB ke ~350-450 KB.
+         */
+        function jpegOf(canvas, maxWidth, quality) {
+            if (!canvas) {
+                return null;
+            }
+
+            if (!maxWidth || canvas.width <= maxWidth) {
+                return dataUrlOf(canvas, quality);
+            }
+
+            const small = document.createElement('canvas');
+            small.width = maxWidth;
+            small.height = Math.max(1, Math.round(canvas.height * (maxWidth / canvas.width)));
+
+            const ctx = small.getContext('2d');
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(canvas, 0, 0, small.width, small.height);
+
+            return dataUrlOf(small, quality);
+        }
+
+        /**
+         * Thumbnail buat kartu gallery: lebar ~360 px, JPEG ringan.
+         * Dibuat di browser karena server tidak punya GD/Imagick.
+         */
+        function thumbOf(canvas) {
+            return jpegOf(canvas, appConfig.thumbWidth || 360, 0.72);
         }
 
         saveButton.addEventListener('click', async function () {
@@ -950,9 +1035,10 @@
                         caption: state.caption,
                         date_stamp: state.dateStamp,
                         shots: currentShots().map(function (canvas) {
-                            return dataUrlOf(canvas, 0.85);
+                            return jpegOf(canvas, SHOT_MAX_WIDTH, 0.8);
                         }),
-                        sheet: sheet.toDataURL('image/jpeg', 0.88)
+                        sheet: jpegOf(sheet, SHEET_MAX_WIDTH, 0.9),
+                        thumb: thumbOf(sheet)
                     })
                 });
 

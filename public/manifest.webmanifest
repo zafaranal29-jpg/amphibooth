@@ -1,0 +1,40 @@
+{
+    "name": "Amphibooth — Photo Booth Imut",
+    "short_name": "Amphibooth",
+    "description": "Photo booth online: 3 pose jadi 1 strip cantik, 15 frame, filter yang ngikutin gerak kepala.",
+    "lang": "id",
+    "dir": "ltr",
+    "start_url": "./",
+    "scope": "./",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#FFFDF9",
+    "theme_color": "#FFC0CB",
+    "categories": ["photo", "entertainment", "lifestyle"],
+    "icons": [
+        {
+            "src": "icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}

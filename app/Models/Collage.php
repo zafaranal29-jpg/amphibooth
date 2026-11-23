@@ -125,6 +125,41 @@ class Collage extends Model
     }
 
     /**
+     * Nama file thumbnail (versi kecil buat kartu gallery).
+     *
+     * Thumbnail dibuat di browser waktu menyimpan strip, jadi server tidak
+     * perlu ekstensi GD/Imagick. Selalu .jpg karena sumbernya JPEG.
+     */
+    public function thumbName(): string
+    {
+        return 'thumb_'.pathinfo($this->file_name, PATHINFO_FILENAME).'.jpg';
+    }
+
+    /**
+     * Path thumbnail di disk.
+     */
+    public function thumbPath(): string
+    {
+        return rtrim(config('amphibooth.photos_path'), '/\\').DIRECTORY_SEPARATOR.$this->thumbName();
+    }
+
+    /**
+     * Thumbnail-nya ada di disk?
+     */
+    public function hasThumb(): bool
+    {
+        return File::exists($this->thumbPath());
+    }
+
+    /**
+     * URL thumbnail; kalau belum ada (strip lama), balik ke URL lembar penuh.
+     */
+    public function thumbUrl(): string
+    {
+        return $this->hasThumb() ? asset('images/photos/'.$this->thumbName()) : $this->url();
+    }
+
+    /**
      * Filenya masih ada di disk? Dipakai biar gallery/share nggak nampilin
      * gambar rusak kalau file-nya keburu hilang (pernah kejadian).
      */
@@ -152,7 +187,7 @@ class Collage extends Model
     }
 
     /**
-     * Hapus lembar beserta seluruh file shot-nya.
+     * Hapus lembar beserta seluruh file shot dan thumbnail-nya.
      */
     public function deleteWithFiles(): void
     {
@@ -164,6 +199,10 @@ class Collage extends Model
 
         if (File::exists($this->path())) {
             File::delete($this->path());
+        }
+
+        if ($this->hasThumb()) {
+            File::delete($this->thumbPath());
         }
 
         $this->photos()->delete();

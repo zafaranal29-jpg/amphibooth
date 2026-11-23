@@ -23,6 +23,11 @@
 # Jangan tampilkan isi folder.
 Options -Indexes
 
+# Manifest PWA harus dikirim dengan MIME yang benar supaya dikenali browser.
+<IfModule mod_mime.c>
+    AddType application/manifest+json .webmanifest
+</IfModule>
+
 # Blokir akses ke file sensitif kalau public/ dipakai sebagai document root.
 <FilesMatch "^\.(env|git)">
     Require all denied

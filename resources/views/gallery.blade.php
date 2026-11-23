@@ -18,6 +18,7 @@
     @include('partials.app-config', ['demo' => false])
 
     @include('partials.animations-head')
+    @include('partials.pwa')
 </head>
 <body data-page="gallery">
 
