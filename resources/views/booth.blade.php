@@ -42,7 +42,7 @@
         <header class="header-title" data-anim-group>
             <h1>Strike a Pose! 📸</h1>
             <p>
-                Tiga pose, satu strip imut.
+                Pose sesukamu, satu strip imut.
                 @if (! ($demo ?? false))
                     Siap, <span id="nama-user">{{ auth()->user()->name }}</span>?
                 @else
@@ -126,6 +126,11 @@
                         <img alt="" hidden>
                         <span class="slot-retake"><i class="fa-solid fa-rotate-left"></i> Ulangi</span>
                     </button>
+                    <button class="slot hidden" type="button" data-anim-fade data-slot="3" aria-label="Foto 4">
+                        <span class="slot-num">4</span>
+                        <img alt="" hidden>
+                        <span class="slot-retake"><i class="fa-solid fa-rotate-left"></i> Ulangi</span>
+                    </button>
                 </div>
 
                 <div class="shutter-row">
@@ -168,6 +173,15 @@
                         <button class="btn-filter" data-filter="blush">😳 Blushing</button>
                         <button class="btn-filter" data-filter="heart">💖 Hearts</button>
                         <button class="btn-filter" data-filter="sparkle">✨ Sparkles</button>
+                    </div>
+
+                    <h3 class="panel-subtitle">Jumlah pose</h3>
+
+                    <div class="pose-row" id="pose-row" role="group" aria-label="Jumlah pose per strip">
+                        <button class="btn-pose" data-poses="1" type="button">1 pose</button>
+                        <button class="btn-pose" data-poses="2" type="button">2 pose</button>
+                        <button class="btn-pose active" data-poses="3" type="button">3 pose</button>
+                        <button class="btn-pose" data-poses="4" type="button">4 pose</button>
                     </div>
 
                     <h3 class="panel-subtitle">Kamera</h3>

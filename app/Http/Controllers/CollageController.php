@@ -61,12 +61,12 @@ class CollageController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'layout' => ['required', Rule::in(['strip3'])],
+            'layout' => ['required', Rule::in(['strip1', 'strip2', 'strip3', 'strip4'])],
             'frame' => ['required', Rule::in(Collage::FRAMES)],
             'frame_color' => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'caption' => ['nullable', 'string', 'max:80'],
             'date_stamp' => ['nullable', 'boolean'],
-            'shots' => ['required', 'array', 'min:1', 'max:3'],
+            'shots' => ['required', 'array', 'min:1', 'max:4'],
             'shots.*' => ['required', 'string'],
             'sheet' => ['required', 'string'],
             'thumb' => ['nullable', 'string'],

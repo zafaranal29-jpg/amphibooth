@@ -32,7 +32,11 @@ class Collage extends Model
      * @var array<string, array{shots: int, label: string}>
      */
     public const LAYOUTS = [
-        'strip3' => ['shots' => 3, 'label' => 'Strip 3'],
+        'strip1' => ['shots' => 1, 'label' => 'Strip 1 pose'],
+        'strip2' => ['shots' => 2, 'label' => 'Strip 2 pose'],
+        'strip3' => ['shots' => 3, 'label' => 'Strip 3 pose'],
+        'strip4' => ['shots' => 4, 'label' => 'Strip 4 pose'],
+        // Layout lama (dipakai data gallery yang sudah tersimpan).
         'single' => ['shots' => 1, 'label' => 'Foto Tunggal'],
     ];
 

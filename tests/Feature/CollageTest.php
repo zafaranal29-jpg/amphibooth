@@ -75,7 +75,7 @@ class CollageTest extends TestCase
 
         $this->assertSame($user->id, $collage->user_id);
         $this->assertSame('strip3', $collage->layout);
-        $this->assertSame('Strip 3', $collage->layoutLabel());
+        $this->assertSame('Strip 3 pose', $collage->layoutLabel());
         $this->assertSame('Hari yang imut', $collage->caption);
         $this->assertFalse($collage->is_loved);
         $this->assertSame(32, strlen($collage->share_token));
@@ -100,6 +100,71 @@ class CollageTest extends TestCase
             ->assertJsonValidationErrors('shots');
 
         $this->assertSame(0, Collage::count());
+    }
+
+    public function test_layout_1_2_dan_4_pose_bisa_disimpan(): void
+    {
+        $user = User::factory()->create();
+
+        foreach ([1, 2, 4] as $poses) {
+            $response = $this->actingAs($user)->postJson('/collages', $this->payload([
+                'layout' => 'strip'.$poses,
+                'shots' => array_fill(0, $poses, $this->dataUrl()),
+            ]));
+
+            $response->assertCreated()->assertJsonPath('success', true);
+
+            $collage = Collage::latest('id')->firstOrFail();
+
+            $this->assertSame('strip'.$poses, $collage->layout);
+            $this->assertSame($poses, $collage->shotCount());
+            $this->assertSame($poses, $collage->photos()->count());
+        }
+
+        $this->assertSame(3, Collage::count());
+    }
+
+    public function test_layout_4_pose_menolak_kalau_fotonya_cuma_2(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->postJson('/collages', $this->payload([
+                'layout' => 'strip4',
+                'shots' => [$this->dataUrl(), $this->dataUrl()],
+            ]))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('shots');
+
+        $this->assertSame(0, Collage::count());
+    }
+
+    public function test_layout_lama_single_masih_tampil_di_gallery(): void
+    {
+        $user = User::factory()->create();
+
+        // Data lama (layout "single") tetap kebaca walau sudah tidak bisa dipilih.
+        $collage = Collage::create([
+            'user_id' => $user->id,
+            'layout' => 'single',
+            'frame' => 'polaroid',
+            'frame_color' => '#ffb3c7',
+            'caption' => null,
+            'date_stamp' => true,
+            'file_name' => 'lama.png',
+            'share_token' => str_repeat('a', 32),
+            'taken_at' => now(),
+        ]);
+
+        $this->assertSame(1, $collage->shotCount());
+        $this->assertSame('Foto Tunggal', $collage->layoutLabel());
+
+        $this->actingAs($user)
+            ->getJson('/collages')
+            ->assertOk()
+            ->assertJsonPath('data.0.layout', 'single')
+            ->assertJsonPath('data.0.layout_label', 'Foto Tunggal')
+            ->assertJsonPath('data.0.shots', 1);
     }
 
     public function test_gambar_rusak_ditolak(): void
@@ -291,6 +356,26 @@ class CollageTest extends TestCase
         $this->artisan('photos:prune')->assertSuccessful();
         $this->assertFalse(File::exists($orphan));
         $this->assertTrue(File::exists($collage->path()));
+    }
+
+    public function test_prune_tidak_menghapus_thumbnail_strip_yang_masih_ada(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user)->postJson('/collages', $this->payload())->assertCreated();
+
+        $collage = Collage::firstOrFail();
+
+        // Thumbnail bukan baris DB, jadi harus dikenali dari nama turunannya.
+        $thumb = $this->photoDirectory.DIRECTORY_SEPARATOR.$collage->thumbName();
+        File::put($thumb, base64_decode(self::PNG));
+
+        $thumbNyasar = $this->photoDirectory.DIRECTORY_SEPARATOR.'thumb_strip_hantu_tidak_ada.jpg';
+        File::put($thumbNyasar, base64_decode(self::PNG));
+
+        $this->artisan('photos:prune')->assertSuccessful();
+
+        $this->assertTrue(File::exists($thumb), 'thumbnail strip hidup jangan ikut kehapus');
+        $this->assertFalse(File::exists($thumbNyasar), 'thumbnail yatim tetap dibersihkan');
     }
 
     public function test_unggahan_tidak_boleh_berupa_file_biasa(): void

@@ -54,7 +54,7 @@
                 <h1>Photo booth imut<br><span class="hero-accent">langsung di browser</span></h1>
 
                 <p class="hero-lead">
-                    Tiga pose jadi satu strip cantik. Pilih dari <strong>16 frame</strong>,
+                    1–4 pose jadi satu strip cantik. Pilih dari <strong>16 frame</strong>,
                     pakai filter yang ngikutin gerak kepala, lalu simpan ke gallery kamu.
                 </p>
 

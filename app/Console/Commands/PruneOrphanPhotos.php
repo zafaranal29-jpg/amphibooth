@@ -42,6 +42,11 @@ class PruneOrphanPhotos extends Command
             ->filter()
             ->flip();
 
+        // Nama tanpa ekstensi, buat mengenali thumbnail: Collage::thumbName()
+        // selalu menulis .jpg, sedangkan lembar lamanya bisa .png.
+        $usedStems = collect($used->keys())
+            ->mapWithKeys(fn (string $name) => [pathinfo($name, PATHINFO_FILENAME) => true]);
+
         $orphans = [];
 
         foreach (File::files($directory) as $file) {
@@ -57,6 +62,14 @@ class PruneOrphanPhotos extends Command
             }
 
             if ($used->has($name)) {
+                continue;
+            }
+
+            // Thumbnail bukan baris database: namanya turunan dari lembar
+            // (thumb_<nama file lembar tanpa ekstensi>.jpg). Tanpa pengecualian
+            // ini, prune bakal menghapus thumbnail strip yang masih hidup.
+            if (str_starts_with($name, 'thumb_')
+                && $usedStems->has(pathinfo(substr($name, 6), PATHINFO_FILENAME))) {
                 continue;
             }
 

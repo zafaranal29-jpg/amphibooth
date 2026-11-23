@@ -19,8 +19,9 @@
     const appConfig = JSON.parse(document.getElementById('app-config').textContent);
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
-    const SHOT_COUNT = 3;
-    const LAYOUT = 'strip3';
+    const DEFAULT_SHOTS = 3;
+    const MAX_SHOTS = 4;
+    // Layout dikirim ke server; jumlahnya ikut pilihan "jumlah pose".
     const PAUSE_BETWEEN_SHOTS = 850;
 
     /*
@@ -96,7 +97,8 @@
         // ---------- STATE ----------
         const state = {
             phase: 'setup',       // setup | capturing | finish | result
-            shots: new Array(SHOT_COUNT).fill(null),
+            shots: new Array(DEFAULT_SHOTS).fill(null),
+            poses: DEFAULT_SHOTS, // jumlah pose per strip (1-4)
             filter: 'none',
             frame: 'polaroid',
             frameColor: '#ffb3c7',
@@ -547,11 +549,16 @@
             progressEl.textContent = text;
         }
 
+        /** Jumlah pose aktif untuk sesi ini (1-4). */
+        function shotCount() {
+            return state.poses;
+        }
+
         function updateShutterLabel() {
             const filled = state.shots.filter(Boolean).length;
 
             if (state.phase === 'setup' && filled === 0) {
-                shutterLabel.textContent = 'Mulai Sesi (3 foto)';
+                shutterLabel.textContent = 'Mulai Sesi (' + shotCount() + ' foto)';
                 return;
             }
 
@@ -568,16 +575,27 @@
                 button.disabled = locked;
             });
 
+            document.querySelectorAll('[data-poses]').forEach(function (button) {
+                button.disabled = locked;
+            });
+
             [cameraSelect, qualitySelect, timerSelect, mirrorToggle].forEach(function (el) {
                 el.disabled = locked;
             });
         }
 
         function renderSlots() {
+            const total = shotCount();
+
             slotEls.forEach(function (slot, index) {
-                const shot = state.shots[index];
+                const aktif = index < total;
+                const shot = aktif ? state.shots[index] : null;
                 const img = slot.querySelector('img');
 
+                // Slot di luar jumlah pose disembunyikan (bukan dihapus, biar
+                // markup-nya tetap satu sumber dan animasinya tidak bikin ulang).
+                slot.hidden = !aktif;
+                slot.classList.toggle('hidden', !aktif);
                 slot.classList.toggle('filled', Boolean(shot));
                 slot.classList.remove('capturing');
 
@@ -603,7 +621,50 @@
             });
 
             const filled = state.shots.filter(Boolean).length;
-            setProgress('Foto ' + Math.min(filled + (state.phase === 'capturing' ? 1 : 0), SHOT_COUNT) + '/' + SHOT_COUNT);
+            setProgress('Foto ' + Math.min(filled + (state.phase === 'capturing' ? 1 : 0), total) + '/' + total);
+        }
+
+        /** Ganti jumlah pose (1-4). Foto yang sudah ada ikut direset. */
+        function setPoses(poses) {
+            const total = Math.max(1, Math.min(MAX_SHOTS, parseInt(poses, 10) || DEFAULT_SHOTS));
+
+            if (state.phase !== 'setup') {
+                toast('Jumlah pose cuma bisa diganti di langkah awal ya 💗', true);
+                return;
+            }
+
+            if (total === state.poses) {
+                return;
+            }
+
+            if (state.shots.some(Boolean)) {
+                const lanjut = window.confirm(
+                    'Ganti jadi ' + total + ' pose? Foto yang sudah dijepret akan dihapus.'
+                );
+
+                if (!lanjut) {
+                    return;
+                }
+            }
+
+            state.poses = total;
+            state.shots = new Array(total).fill(null);
+
+            slotStrip.dataset.poses = String(total);
+
+            document.querySelectorAll('[data-poses]').forEach(function (button) {
+                const active = parseInt(button.dataset.poses, 10) === total;
+                button.classList.toggle('active', active);
+                button.setAttribute('aria-pressed', active ? 'true' : 'false');
+            });
+
+            renderSlots();
+
+            if (state.phase === 'setup' && !state.cameraOff) {
+                shutterLabel.textContent = 'Mulai Sesi (' + total + ' foto)';
+            }
+
+            toast('Siap! ' + total + ' pose per strip 💗');
         }
 
         // ----------------------------------------------
@@ -631,7 +692,7 @@
                 slot.classList.toggle('capturing', i === index);
             });
 
-            setProgress('Bersiap foto ' + (index + 1) + '/' + SHOT_COUNT);
+            setProgress('Bersiap foto ' + (index + 1) + '/' + shotCount());
             shutterLabel.textContent = 'Pose ' + (index + 1) + '... 📸';
 
             await wait(index === 0 ? 450 : PAUSE_BETWEEN_SHOTS);
@@ -675,7 +736,7 @@
 
             const filled = state.shots.filter(Boolean).length;
 
-            if (filled >= SHOT_COUNT) {
+            if (filled >= shotCount()) {
                 await wait(520);
                 enterFinish();
                 return;
@@ -763,8 +824,8 @@
                 return;
             }
 
-            if (list.length > SHOT_COUNT) {
-                toast('Kebanyakan! Dipakai ' + SHOT_COUNT + ' foto pertama aja ya 💗');
+            if (list.length > shotCount()) {
+                toast('Kebanyakan! Dipakai ' + shotCount() + ' foto pertama aja ya 💗');
             }
 
             // Slot kosong diisi dulu; kalau sudah penuh, yang lama tertimpa.
@@ -780,7 +841,7 @@
             state.busy = true;
             let ok = 0;
 
-            for (let i = 0; i < Math.min(list.length, SHOT_COUNT); i++) {
+            for (let i = 0; i < Math.min(list.length, shotCount()); i++) {
                 try {
                     const source = await loadImageFile(list[i]);
                     state.shots[order[i]] = shotFromImage(source);
@@ -806,7 +867,7 @@
 
             const filled = state.shots.filter(Boolean).length;
 
-            if (filled >= SHOT_COUNT) {
+            if (filled >= shotCount()) {
                 await wait(420);
                 enterFinish();
             }
@@ -1086,6 +1147,22 @@
             state.sound = soundToggle.checked;
         });
 
+        // Jumlah pose per strip (1-4). Default 3, dan penanda di markup
+        // disinkronkan di sini biar tidak ada dua sumber kebenaran.
+        document.querySelectorAll('[data-poses]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                setPoses(button.dataset.poses);
+            });
+        });
+
+        slotStrip.dataset.poses = String(state.poses);
+
+        document.querySelectorAll('[data-poses]').forEach(function (button) {
+            const active = parseInt(button.dataset.poses, 10) === state.poses;
+            button.classList.toggle('active', active);
+            button.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+
         cameraSelect.addEventListener('change', startCamera);
         qualitySelect.addEventListener('change', startCamera);
 
@@ -1170,7 +1247,7 @@
 
         function resetSession() {
             state.phase = 'setup';
-            state.shots = new Array(SHOT_COUNT).fill(null);
+            state.shots = new Array(shotCount()).fill(null);
             state.busy = false;
             state.savedCollage = null;
 
@@ -1181,8 +1258,8 @@
             lockSetup(false);
             shutter.disabled = false;
             restartButton.hidden = true;
-            shutterLabel.textContent = 'Mulai Sesi (3 foto)';
-            setProgress('Foto 1/3');
+            shutterLabel.textContent = 'Mulai Sesi (' + shotCount() + ' foto)';
+            setProgress('Foto 1/' + shotCount());
 
             if (window.faceFilter && window.faceFilter.setFilter) {
                 window.faceFilter.setFilter(state.filter);
@@ -1322,7 +1399,7 @@
                         'X-CSRF-TOKEN': csrfToken
                     },
                     body: JSON.stringify({
-                        layout: LAYOUT,
+                        layout: 'strip' + shotCount(),
                         frame: state.frame,
                         frame_color: state.frameColor,
                         caption: state.caption,
@@ -1427,7 +1504,7 @@
                 return;
             }
 
-            const name = 'amphibooth-strip3-' + new Date().toISOString().slice(0, 10) + '.jpg';
+            const name = 'amphibooth-strip' + shotCount() + '-' + new Date().toISOString().slice(0, 10) + '.jpg';
 
             sheet.toBlob(function (blob) {
                 if (!blob) {
@@ -1527,7 +1604,7 @@
                 shutter.disabled = false;
                 shutterLabel.textContent = state.shots.some(Boolean)
                     ? 'Lanjut Jepret 📸'
-                    : 'Mulai Sesi (3 foto)';
+                    : 'Mulai Sesi (' + shotCount() + ' foto)';
                 loadingText.style.display = 'none';
                 video.style.display = 'block';
             }
@@ -1550,6 +1627,7 @@
             enterFinish: enterFinish,
             renderStrip: renderStrip,
             resetSession: resetSession,
+            setPoses: setPoses,
             setShot: function (index, canvas) {
                 const thumb = coverCanvas(canvas, 320, 240);
                 state.shots[index] = { canvas: canvas, thumbUrl: thumb.toDataURL('image/jpeg', 0.8) };

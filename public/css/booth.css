@@ -384,6 +384,56 @@ body {
     margin: 16px 0 14px;
 }
 
+/* Jumlah slot mengikuti pilihan "jumlah pose". */
+.slot-strip[data-poses="1"] {
+    grid-template-columns: 1fr;
+}
+
+.slot-strip[data-poses="2"] {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.slot-strip[data-poses="4"] {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+
+/* Pickers jumlah pose (panel pengaturan). */
+.pose-row {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    margin: 6px 0 14px;
+}
+
+.btn-pose {
+    font-family: 'Quicksand', sans-serif;
+    font-weight: 700;
+    font-size: 0.82rem;
+    padding: 9px 4px;
+    color: #795548;
+    background-color: #FFFDF9;
+    border: 2px solid #E3D5CB;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-pose:hover {
+    border-color: #795548;
+}
+
+.btn-pose.active {
+    color: #FFFFFF;
+    background-color: #795548;
+    border-color: #795548;
+}
+
+.btn-pose:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .slot {
     position: relative;
     aspect-ratio: 4 / 3;

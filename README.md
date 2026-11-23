@@ -1,15 +1,24 @@
 # Amphibooth 📸
 
-Photo booth imut berbasis web: satu sesi **3 jepretan** jadi **satu strip vertikal** yang bisa dihias frame, dikasih caption, disimpan ke gallery pribadi, diunduh, dicetak, dan dibagikan lewat link publik. Dibangun dengan **Laravel 12** + MySQL. CSS/JS ditulis langsung di `public/` (tanpa Vite/Tailwind); satu-satunya langkah build adalah bundle animasi UI (`npm run build:anim`).
+Photo booth imut berbasis web: satu sesi **1–4 jepretan** jadi **satu strip vertikal** yang bisa dihias frame, dikasih caption, disimpan ke gallery pribadi, diunduh, dicetak, dan dibagikan lewat link publik. Dibangun dengan **Laravel 12** + MySQL. CSS/JS ditulis langsung di `public/` (tanpa Vite/Tailwind); satu-satunya langkah build adalah bundle animasi UI (`npm run build:anim`).
 
 ## Fitur
 
 **Sesi & hasil**
-- **Strip 3 foto (2×6 inch)** — jeda + hitungan per shot, otomatis lanjut ke slot berikutnya.
+- **Strip 1–4 pose** — pilih jumlah pose di panel pengaturan; slot, label tombol jepret, dan
+  tinggi lembar ikut menyesuaikan (1 pose = 700×679 px, 4 pose = 700×2074 px).
+  Jeda + hitungan per shot, otomatis lanjut ke slot berikutnya.
+- **Upload dari galeri** — foto lama/HP bisa dipakai sebagai pose (dipotong cover ke rasio
+  kamera, EXIF orientation dihormati), campur dengan jepretan kamera. Kamera mati pun tetap jalan.
+- **Tombol putar kamera & on/off kamera** — ganti kamera depan/belakang tanpa buka pengaturan;
+  tombol power benar-benar mematikan stream (hemat baterai) dan bisa dinyalakan lagi,
+  termasuk kalau izin kamera ditolak (ada tombol "Coba lagi", tidak perlu refresh).
 - **Retake per slot** — kalau pose ke-3 kedip, cukup ulangi slot itu (tidak mengulang seluruh sesi).
 - **15 preset frame + pemilih visual** — Polaroid, Film Strip, Wedding, Maroon Classy, Hollywood, Retro 70s, Boarding Pass, Koran, Candy Stripe, Scallop, Halloween, Pop Art, Paradise, Minimalis, dan Warna Solid (pilih warna sendiri). Tiap opsi ditampilkan sebagai **thumbnail hasil sesi kamu sendiri**, bukan cuma nama; `Tanpa Frame` tetap ada untuk foto lama.
 - **Caption custom + date stamp** — ikut tergambar di lembar hasil.
-- **Efek foto** — Original, Hangat, B&W, Vintage, Dreamy, Alien (diterapkan ke semua sel).
+- **35 efek foto** — Original, Hangat, B&W, Vintage, Dreamy, Alien, Kodak, Fujifilm, Polaroid,
+  Lomo, VHS, Y2K, Cyberpunk, Duotone, Riso, HDR, Cinematic, Matte, Pastel, dan lainnya
+  (semua CSS filter di canvas, tanpa aset gambar; diterapkan ke semua sel).
 - **Download JPG** (render 1.5× untuk cetak) + **Print** (print CSS: cuma lembarnya yang keluar) + info ukuran file & batas cetak 300 dpi di layar hasil.
 - **Simpan ringkas** — yang dikirim ke server bukan render 1.5×: lembar 760 px + shot 960 px + thumbnail 360 px, jadi satu sesi ± 400–600 KB (unduhan tetap dirender ulang 1.5× di browser).
 
@@ -134,7 +143,7 @@ selama proses jalan dan **siapa pun yang punya link itu bisa membukanya** — ja
 
 **2. Deploy ke hosting HTTPS** (permanen) — lihat [docs/DEPLOY-ALWAYSDATA.md](docs/DEPLOY-ALWAYSDATA.md).
 
-Checklist tes di HP: landing → Coba Demo → izinkan kamera → 3 pose → pilih frame → unduh →
+Checklist tes di HP: landing → Coba Demo → izinkan kamera → pose → pilih frame → unduh →
 daftar akun → gallery → profil (kuota) → hapus data. Filter wajah perlu internet (MediaPipe dari CDN).
 
 ## Menjalankan
@@ -219,7 +228,7 @@ Aturan yang dipegang:
 1. Browser: 3× capture (video + stiker AI) → canvas per slot.
 2. `strip.js` menggambar lembar (frame + caption + tanggal + efek) → JPEG.
 3. `POST /collages` mengirim **3 shot + 1 lembar** (base64). Server memvalidasi lalu menyimpan 4 file + 1 baris `collages` + 3 baris `photos`.
-4. Gallery membaca `collages`; `GET /collages/{id}/download` mengirim file dengan nama `amphibooth-strip3-YYYY-MM-DD.jpg`.
+4. Gallery membaca `collages`; `GET /collages/{id}/download` mengirim file dengan nama `amphibooth-strip<N>-YYYY-MM-DD.jpg` (N = jumlah pose).
 
 ## Catatan
 
