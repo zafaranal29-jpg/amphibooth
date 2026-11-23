@@ -1,2 +1,16 @@
+# Amphibooth — robots.txt
+# Halaman privat jangan diindeks; halaman depan, /demo, dan /privasi boleh.
+
 User-agent: *
-Disallow:
+Disallow: /gallery
+Disallow: /booth
+Disallow: /profile
+Disallow: /collages
+Disallow: /reset-password
+Disallow: /forgot-password
+Disallow: /login
+Disallow: /register
+
+Allow: /
+Allow: /demo
+Allow: /privasi

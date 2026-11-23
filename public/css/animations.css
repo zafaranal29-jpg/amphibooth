@@ -1,0 +1,598 @@
+/* ============================================================
+   Amphibooth — lapisan animasi UI
+   Dimuat di semua halaman. Aktif hanya kalau <html> punya class
+   `js-anim` (dipasang oleh inline script di partials/animations-head).
+   Tanpa JS / JS gagal: semua aturan di bawah tidak berlaku,
+   halaman tampil normal.
+   ============================================================ */
+
+/* --- State awal sebelum dianimasikan ------------------------- */
+
+.js-anim [data-anim] {
+    opacity: 0;
+    transform: translateY(14px);
+}
+
+/* Elemen yang sudah punya transform sendiri di CSS (mis. strip miring) */
+.js-anim [data-anim-fade] {
+    opacity: 0;
+}
+
+.js-anim [data-anim-group] > * {
+    opacity: 0;
+    transform: translateY(14px);
+}
+
+/* Hero: masuk pakai CSS murni supaya jalan sejak paint pertama,
+   tidak menunggu bundle JS selesai dimuat. */
+.js-anim .anim-intro > * {
+    opacity: 0;
+    animation: amph-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.js-anim .anim-intro > *:nth-child(1) { animation-delay: 0.05s; }
+.js-anim .anim-intro > *:nth-child(2) { animation-delay: 0.14s; }
+.js-anim .anim-intro > *:nth-child(3) { animation-delay: 0.23s; }
+.js-anim .anim-intro > *:nth-child(4) { animation-delay: 0.32s; }
+.js-anim .anim-intro > *:nth-child(5) { animation-delay: 0.41s; }
+
+/* Strip hero: fade saja (punya transform rotasi di CSS sendiri) */
+.js-anim .hero-strips.anim-intro > * {
+    opacity: 0;
+    animation: amph-fade-only 0.8s ease-out both;
+}
+
+.js-anim .hero-strips.anim-intro > *:nth-child(1) { animation-delay: 0.25s; }
+.js-anim .hero-strips.anim-intro > *:nth-child(2) { animation-delay: 0.37s; }
+.js-anim .hero-strips.anim-intro > *:nth-child(3) { animation-delay: 0.49s; }
+
+@keyframes amph-rise {
+    from {
+        opacity: 0;
+        transform: translateY(26px) scale(0.985);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes amph-fade-only {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* --- Hormati preferensi "kurangi gerak" ---------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+    .js-anim [data-anim],
+    .js-anim [data-anim-group] > * {
+        opacity: 1;
+        transform: none;
+    }
+
+    .js-anim [data-anim-fade] {
+        opacity: 1;
+    }
+
+    .js-anim .anim-intro > *,
+    .js-anim .hero-strips.anim-intro > * {
+        opacity: 1;
+        animation: none;
+    }
+
+    .floating-assets .asset {
+        animation: none;
+    }
+}
+
+/* --- Jangan pernah menyembunyikan apa pun saat print --------- */
+
+@media print {
+    .js-anim [data-anim],
+    .js-anim [data-anim-fade],
+    .js-anim [data-anim-group] > *,
+    .js-anim .anim-intro > *,
+    .js-anim .hero-strips.anim-intro > * {
+        opacity: 1 !important;
+        animation: none !important;
+    }
+
+    .floating-assets,
+    .anim-heart {
+        display: none !important;
+    }
+}
+
+/* --- Hati kecil yang terbang saat tombol love ditekan -------- */
+
+.anim-heart {
+    position: fixed;
+    z-index: 9999;
+    pointer-events: none;
+    font-size: 18px;
+    line-height: 1;
+    will-change: transform, opacity;
+}
+
+
+/* ============================================================
+   LEVEL 2 — gerakan ambient (selalu hidup, bukan cuma saat masuk)
+   ============================================================ */
+
+/* Blob gradasi lembut di belakang hero (landing). Transform-only,
+   tanpa filter blur supaya tetap murah di HP. */
+.js-anim .hero {
+    position: relative;
+    isolation: isolate;
+}
+
+.js-anim .hero-blob {
+    position: absolute;
+    display: block;
+    width: min(26vw, 300px);
+    height: min(26vw, 300px);
+    border-radius: 50%;
+    z-index: -1;
+    pointer-events: none;
+    background: radial-gradient(circle at 32% 32%, rgba(255, 192, 203, 0.5), rgba(255, 192, 203, 0) 68%);
+    /* steps(): posisinya cuma digeser tiap ~2 detik. Gerakan tetap halus dilihat
+       mata, tapi compositor nggak kerja terus-terusan (penting di HP kelas bawah). */
+    animation: amph-blob-a 20s steps(10, end) infinite alternate;
+}
+
+.js-anim .hero-blob-a {
+    left: -12%;
+    top: -16%;
+}
+
+.js-anim .hero-blob-b {
+    right: -8%;
+    bottom: -14%;
+    background: radial-gradient(circle at 60% 40%, rgba(255, 222, 173, 0.45), rgba(255, 222, 173, 0) 68%);
+    animation: amph-blob-b 24s steps(10, end) infinite alternate;
+}
+
+@keyframes amph-blob-a {
+    from { transform: translate3d(-5%, -3%, 0); }
+    to   { transform: translate3d(7%, 5%, 0); }
+}
+
+@keyframes amph-blob-b {
+    from { transform: translate3d(4%, 5%, 0); }
+    to   { transform: translate3d(-7%, -5%, 0); }
+}
+
+/* Garis progres scroll tipis di paling atas */
+.anim-progress {
+    position: fixed;
+    inset: 0 0 auto 0;
+    height: 3px;
+    transform: scaleX(0);
+    transform-origin: 0 50%;
+    border-radius: 0 999px 999px 0;
+    background: linear-gradient(90deg, #FFC0CB, #FF6B6B);
+    z-index: 9998;
+    pointer-events: none;
+    will-change: transform;
+}
+
+/* Cincin napas di tombol shutter (booth) */
+.js-anim .btn-shutter {
+    position: relative;
+}
+
+.js-anim .btn-shutter:not(:disabled)::after {
+    content: '';
+    position: absolute;
+    inset: -7px;
+    border-radius: 32px;
+    border: 3px solid rgba(255, 107, 107, 0.45);
+    pointer-events: none;
+    animation: amph-ring 3s ease-out infinite;
+}
+
+@keyframes amph-ring {
+    0%   { transform: scale(0.98); opacity: 0.65; }
+    70%  { transform: scale(1.05); opacity: 0; }
+    100% { transform: scale(1.05); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .js-anim .hero-blob,
+    .js-anim .btn-shutter::after,
+    .anim-progress {
+        animation: none !important;
+        display: none;
+    }
+}
+
+@media print {
+    .anim-progress,
+    .js-anim .hero-blob,
+    .js-anim .btn-shutter::after {
+        display: none !important;
+    }
+}
+
+
+/* ============================================================
+   TIRAI BILIK — transisi antar halaman
+   Lima panel pink polkadot menyapu naik/turun, plus label singkat.
+   ============================================================ */
+
+.curtain {
+    position: fixed;
+    inset: 0;
+    z-index: 9997;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.curtain > i {
+    display: block;
+    height: 100%;
+    background-color: #FFC0CB;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.5) 17%, rgba(255, 255, 255, 0) 18%);
+    background-size: 22px 22px;
+    box-shadow: inset -2px 0 0 rgba(121, 85, 72, 0.16);
+    transform: translateY(101%);
+    will-change: transform;
+}
+
+/* Titik-titiknya digeser per kolom supaya sambungan kolom kelihatan */
+.curtain > i:nth-child(2) { background-position-x: 6px; }
+.curtain > i:nth-child(3) { background-position-x: 12px; }
+.curtain > i:nth-child(4) { background-position-x: 6px; }
+.curtain > i:nth-child(5) { background-position-x: 14px; }
+
+.curtain.is-covering > i {
+    transform: translateY(0);
+}
+
+.curtain-label {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    text-align: center;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 1.15rem;
+    color: #795548;
+    letter-spacing: 0.02em;
+    opacity: 0;
+    will-change: opacity;
+}
+
+.curtain.is-covering .curtain-label {
+    opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .curtain {
+        display: none;
+    }
+}
+
+@media print {
+    .curtain {
+        display: none !important;
+    }
+}
+
+/* ============================================================
+   TILT 3D + KILAU (kartu gallery & pemilih frame, desktop saja)
+   ============================================================ */
+
+.strip-card,
+.frame-card {
+    transform-style: preserve-3d;
+}
+
+.tilt-glare {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    background: radial-gradient(
+        circle at var(--gx, 50%) var(--gy, 50%),
+        rgba(255, 255, 255, 0.62),
+        rgba(255, 255, 255, 0) 58%
+    );
+}
+
+.tilt-on .tilt-glare {
+    opacity: 0.75;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tilt-glare {
+        display: none;
+    }
+}
+
+/* ============================================================
+   SKELETON SHIMMER (kartu gallery saat memuat)
+   ============================================================ */
+
+.skel-card {
+    position: relative;
+    min-height: 268px;
+    border-radius: 22px;
+    background: #FFF4F6;
+    border: 3px solid rgba(121, 85, 72, 0.12);
+    overflow: hidden;
+}
+
+.skel-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, rgba(255, 255, 255, 0) 20%, rgba(255, 255, 255, 0.9) 50%, rgba(255, 255, 255, 0) 80%);
+    background-size: 220% 100%;
+    animation: amph-shimmer 1.4s linear infinite;
+}
+
+@keyframes amph-shimmer {
+    to { background-position: -220% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skel-card::after {
+        animation: none;
+    }
+}
+
+/* ============================================================
+   PING RING — penanda halus di badge & status
+   ============================================================ */
+
+/* Catatan: semua denyut di bawah cuma pakai transform + opacity.
+   box-shadow sengaja dihindari — animasinya memaksa repaint tiap frame
+   dan bikin HP kelas bawah drop frame. */
+
+@keyframes amph-ping {
+    0%   { transform: scale(0.94); opacity: 0.75; }
+    70%  { transform: scale(1.06); opacity: 0; }
+    100% { transform: scale(1.06); opacity: 0; }
+}
+
+@keyframes amph-ring {
+    0%   { transform: scale(0.7); opacity: 0.85; }
+    75%  { transform: scale(2.3); opacity: 0; }
+    100% { transform: scale(2.3); opacity: 0; }
+}
+
+@keyframes amph-blink {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.3; }
+}
+
+.js-anim .hero-badge {
+    position: relative;
+}
+
+/* Cincin napas mengelilingi badge hero */
+.js-anim .hero-badge::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    border: 2px solid rgba(255, 107, 107, 0.55);
+    pointer-events: none;
+    animation: amph-ping 2.8s ease-out infinite;
+}
+
+/* Titik "kamera siap" di booth: cincin hijau menyebar */
+.camera-viewport.anim-ready::after {
+    content: '';
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #4CD964;
+    animation: amph-ring 2.6s ease-out infinite;
+    z-index: 20;
+}
+
+/* Kuota mepet: titik peringatan berkedip di judul kuota */
+.quota-box.is-high .quota-head h3::after {
+    content: '';
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-left: 9px;
+    border-radius: 50%;
+    background: #FF6B6B;
+    animation: amph-blink 1.6s ease-in-out infinite;
+    vertical-align: middle;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .js-anim .hero-badge::after,
+    .camera-viewport.anim-ready::after,
+    .quota-box.is-high .quota-head h3::after {
+        animation: none;
+        display: none;
+    }
+}
+
+/* ============================================================
+   LIGHTBOX STRIP (klik kartu gallery)
+   ============================================================ */
+
+.amph-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 9996;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background: rgba(58, 38, 30, 0.72);
+    backdrop-filter: blur(3px);
+}
+
+.amph-lightbox img {
+    max-width: min(92vw, 520px);
+    max-height: 84vh;
+    border-radius: 18px;
+    box-shadow: 0 26px 60px rgba(0, 0, 0, 0.4);
+    will-change: transform, opacity;
+}
+
+.amph-lightbox .lb-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 3px solid #795548;
+    background: #FFFDF9;
+    color: #795548;
+    font-size: 1.15rem;
+    cursor: pointer;
+    box-shadow: 0 5px 0 #795548;
+}
+
+.amph-lightbox .lb-close:active {
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 #795548;
+}
+
+.amph-lightbox.is-open {
+    cursor: zoom-out;
+}
+
+/* ============================================================
+   PETUNJUK SCROLL (emoji menetes) — landing
+   ============================================================ */
+
+.scroll-hint {
+    display: flex;
+    justify-content: center;
+    margin: 6px 0 26px;
+    pointer-events: none;
+}
+
+.scroll-hint span {
+    display: block;
+    font-size: 1.5rem;
+    opacity: 0;
+    animation: amph-drip 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .scroll-hint span {
+        animation: none;
+        opacity: 0.75;
+    }
+}
+
+@keyframes amph-drip {
+    0%   { opacity: 0; transform: translateY(-8px) scaleY(0.6); }
+    35%  { opacity: 1; transform: translateY(0) scaleY(1); }
+    70%  { opacity: 1; transform: translateY(10px) scaleY(1); }
+    100% { opacity: 0; transform: translateY(20px) scaleY(0.8); }
+}
+
+/* ============================================================
+   BOOTH — kilat, hitungan, film maju, konfeti, bar mencetak
+   ============================================================ */
+
+#camera-flash.active {
+    animation: amph-flash 0.42s ease-out;
+}
+
+@keyframes amph-flash {
+    0%   { opacity: 1; }
+    22%  { opacity: 0.92; }
+    100% { opacity: 0; }
+}
+
+/* Cincin menyebar tiap angka hitungan mundur */
+#countdown.tick::after {
+    content: '';
+    position: absolute;
+    inset: -12%;
+    border-radius: 50%;
+    border: 7px solid rgba(255, 255, 255, 0.7);
+    animation: amph-count-ring 0.85s ease-out;
+    pointer-events: none;
+}
+
+@keyframes amph-count-ring {
+    from { transform: scale(0.55); opacity: 0.95; }
+    to   { transform: scale(1.3); opacity: 0; }
+}
+
+/* Film maju: strip slot terdorong turun-naik tiap foto tersimpan */
+.slot-strip.advance {
+    animation: amph-advance 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes amph-advance {
+    0%   { transform: translateY(0); }
+    38%  { transform: translateY(9px); }
+    100% { transform: translateY(0); }
+}
+
+/* Konfeti */
+.amph-confetti {
+    position: fixed;
+    z-index: 9999;
+    pointer-events: none;
+    font-size: 19px;
+    line-height: 1;
+    will-change: transform, opacity;
+}
+
+/* Bar progres di overlay "mencetak" */
+.print-bar {
+    width: min(240px, 62vw);
+    height: 10px;
+    margin: 14px auto 0;
+    border-radius: 999px;
+    background: rgba(121, 85, 72, 0.16);
+    overflow: hidden;
+}
+
+.print-bar > span {
+    display: block;
+    width: 42%;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #FFC0CB, #FF6B6B);
+    animation: amph-print 1.1s ease-in-out infinite;
+}
+
+@keyframes amph-print {
+    0%   { transform: translateX(-105%); }
+    100% { transform: translateX(240%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #camera-flash.active,
+    #countdown.tick::after,
+    .slot-strip.advance,
+    .print-bar > span {
+        animation: none;
+    }
+}
+
+@media print {
+    .scroll-hint,
+    .amph-lightbox,
+    .amph-confetti,
+    .print-bar {
+        display: none !important;
+    }
+}

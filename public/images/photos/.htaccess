@@ -1,0 +1,19 @@
+# Folder foto booth.
+#
+# Lembar strip (strip_*) memang harus bisa diakses publik: dipakai halaman
+# share /p/{token} dan preview WhatsApp (og:image).
+#
+# Foto mentah (shot_*) TIDAK pernah ditampilkan di UI, jadi ditutup dari
+# akses langsung — isinya muka orang, nggak ada alasan bisa diunduh bebas.
+
+<FilesMatch "^shot_">
+    Require all denied
+</FilesMatch>
+
+# Jangan tampilkan daftar isi folder.
+Options -Indexes
+
+# Jangan diindeks mesin pencari (strip bisa berisi foto pribadi).
+<IfModule mod_headers.c>
+    Header set X-Robots-Tag "noindex, nofollow, noimageindex"
+</IfModule>

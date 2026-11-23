@@ -24,3 +24,10 @@ Homestead.yaml
 Thumbs.db
 
 *.zip
+
+# Foto hasil booth: jangan disimpan di git (bisa membengkak & privat).
+# File .gitkeep tetap ikut supaya foldernya ada, dan .htaccess ikut karena
+# dia yang menutup akses foto mentah (shot_*) di server.
+/public/images/photos/*
+!/public/images/photos/.gitkeep
+!/public/images/photos/.htaccess

@@ -1,0 +1,132 @@
+/* ============================================================
+   HALAMAN LEGAL (privasi) — tema sama, tipografi nyaman dibaca
+   ============================================================ */
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background-color: #FFFDF9;
+    background-image: radial-gradient(#FFE1E6 2.5px, transparent 2.5px);
+    background-size: 34px 34px;
+    color: #6b5347;
+    font-family: 'Quicksand', system-ui, -apple-system, sans-serif;
+    font-size: 1rem;
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+}
+
+a {
+    color: #795548;
+}
+
+.legal-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: calc(100% - 32px);
+    max-width: 820px;
+    margin: 16px auto 0;
+    padding: 10px 18px;
+    background: rgba(255, 253, 249, 0.94);
+    border: 3px solid #795548;
+    border-radius: 999px;
+    box-shadow: 0 6px 0 rgba(121, 85, 72, 0.14);
+    font-weight: 700;
+}
+
+.legal-brand {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1.05rem;
+    text-decoration: none;
+}
+
+.legal-nav nav {
+    display: flex;
+    gap: 14px;
+    font-size: 0.88rem;
+}
+
+.legal-nav a {
+    text-decoration: none;
+}
+
+.legal-nav a:hover {
+    text-decoration: underline;
+}
+
+.legal-main {
+    width: 100%;
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 34px 20px 20px;
+}
+
+.legal-main h1 {
+    font-family: 'Fredoka', sans-serif;
+    font-size: clamp(1.8rem, 4vw, 2.4rem);
+    color: #5d4438;
+    margin: 0 0 10px;
+}
+
+.legal-lead {
+    margin: 0 0 26px;
+    padding: 16px 18px;
+    background: #FFF0F2;
+    border: 3px solid #FFC0CB;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+.legal-main section {
+    margin-bottom: 26px;
+    padding-bottom: 22px;
+    border-bottom: 2px dashed #F0DCD9;
+}
+
+.legal-main section:last-of-type {
+    border-bottom: none;
+}
+
+.legal-main h2 {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1.2rem;
+    color: #795548;
+    margin: 0 0 10px;
+}
+
+.legal-main ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.legal-main li {
+    margin-bottom: 8px;
+}
+
+.legal-foot {
+    font-size: 0.84rem;
+    color: #A9968A;
+    font-weight: 600;
+}
+
+.legal-footer {
+    width: 100%;
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 0 20px 50px;
+    font-size: 0.88rem;
+    font-weight: 700;
+}
+
+.legal-footer a {
+    text-decoration: none;
+}
+
+.legal-footer a:hover {
+    text-decoration: underline;
+}

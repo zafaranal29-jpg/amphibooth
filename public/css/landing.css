@@ -1,0 +1,500 @@
+/* ============================================================
+   LANDING PAGE — Amphibooth
+   Palet sama dengan booth/gallery: krem, cokelat, pink pastel.
+   ============================================================ */
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    min-height: 100vh;
+    background-color: #FFFDF9;
+    background-image: radial-gradient(#FFE1E6 2.5px, transparent 2.5px);
+    background-size: 34px 34px;
+    color: #795548;
+    font-family: 'Quicksand', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+    font-family: 'Fredoka', 'Quicksand', sans-serif;
+    line-height: 1.15;
+    margin: 0;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+/* ------------------------------------------------------------
+   NAV
+   ------------------------------------------------------------ */
+.landing-nav {
+    position: sticky;
+    top: 14px;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: calc(100% - 32px);
+    max-width: 1080px;
+    margin: 14px auto 0;
+    padding: 10px 16px;
+    background: rgba(255, 253, 249, 0.92);
+    backdrop-filter: blur(8px);
+    border: 3px solid #795548;
+    border-radius: 999px;
+    box-shadow: 0 6px 0 rgba(121, 85, 72, 0.14);
+}
+
+.landing-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.brand-dot {
+    display: inline-grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    background: #FFF0F2;
+    border: 2px solid #FFC0CB;
+    border-radius: 50%;
+    font-size: 1rem;
+}
+
+.nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.nav-link {
+    font-weight: 700;
+    font-size: 0.92rem;
+    padding: 8px 6px;
+    opacity: 0.85;
+}
+
+.nav-link:hover {
+    opacity: 1;
+    text-decoration: underline;
+}
+
+.btn-nav,
+.btn-main,
+.btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    text-align: center;
+}
+
+.btn-nav {
+    padding: 10px 18px;
+    font-size: 0.92rem;
+    background: #FFC0CB;
+    border: 2.5px solid #795548;
+    box-shadow: 0 4px 0 rgba(121, 85, 72, 0.35);
+}
+
+.btn-nav:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 0 rgba(121, 85, 72, 0.35);
+}
+
+.btn-nav:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 rgba(121, 85, 72, 0.35);
+}
+
+/* ------------------------------------------------------------
+   HERO
+   ------------------------------------------------------------ */
+main {
+    display: block;
+    width: 100%;
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 16px 60px;
+}
+
+.hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    align-items: center;
+    gap: 32px;
+    padding: 54px 0 30px;
+}
+
+.hero-badge {
+    display: inline-block;
+    padding: 6px 14px;
+    margin-bottom: 16px;
+    background: #FFF0F2;
+    border: 2px dashed #FFC0CB;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+}
+
+.hero h1 {
+    font-size: clamp(2.1rem, 4.6vw, 3.4rem);
+    color: #5d4438;
+}
+
+.hero-accent {
+    display: inline-block;
+    background: linear-gradient(180deg, transparent 62%, #FFC0CB 62%);
+    padding: 0 4px;
+}
+
+.hero-lead {
+    margin: 18px 0 0;
+    font-size: 1.02rem;
+    line-height: 1.65;
+    font-weight: 500;
+    color: #8a6f5f;
+    max-width: 46ch;
+}
+
+.hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-top: 26px;
+}
+
+.btn-main {
+    padding: 15px 26px;
+    font-size: 1.02rem;
+    background: #FFC0CB;
+    border: 3px solid #795548;
+    box-shadow: 0 7px 0 rgba(121, 85, 72, 0.4);
+}
+
+.btn-main:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 0 rgba(121, 85, 72, 0.4);
+}
+
+.btn-main:active {
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 rgba(121, 85, 72, 0.4);
+}
+
+.btn-ghost {
+    padding: 15px 24px;
+    font-size: 1rem;
+    background: #FFFDF9;
+    border: 3px solid #795548;
+    box-shadow: 0 7px 0 rgba(121, 85, 72, 0.18);
+}
+
+.btn-ghost:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 0 rgba(121, 85, 72, 0.18);
+}
+
+.hero-note {
+    margin: 18px 0 0;
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: #8a6f5f;
+    max-width: 42ch;
+}
+
+/* Contoh strip — hasil render Strip.render dari ilustrasi, bukan foto orang */
+.hero-strips {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 14px;
+    padding: 8px 0;
+}
+
+.strip-slot {
+    display: block;
+    width: clamp(96px, 29%, 168px);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 14px 26px rgba(121, 85, 72, 0.22);
+    /* rotate/translate sebagai properti terpisah: animasi (motion) menulis
+       `transform` inline, dan inline mengalahkan `transform` dari CSS —
+       strip-nya jadi lurus. Properti terpisah nggak bisa ketiban. */
+    rotate: -3deg;
+    background: #fff;
+    line-height: 0;
+}
+
+.strip-slot:nth-child(2) {
+    rotate: 1.5deg;
+    translate: 0 -14px;
+    z-index: 2;
+}
+
+.strip-slot:nth-child(3) {
+    rotate: 4deg;
+}
+
+.strip-slot canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+/* ------------------------------------------------------------
+   SECTION UMUM
+   ------------------------------------------------------------ */
+.section-title {
+    font-size: clamp(1.5rem, 2.6vw, 2rem);
+    text-align: center;
+    margin-bottom: 26px;
+    color: #5d4438;
+}
+
+.steps,
+.features {
+    padding: 46px 0 10px;
+}
+
+/* ------------------------------------------------------------
+   3 LANGKAH
+   ------------------------------------------------------------ */
+.step-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    counter-reset: step;
+}
+
+.step-list li {
+    position: relative;
+    background: #FFFDF9;
+    border: 3px solid #795548;
+    border-radius: 22px;
+    padding: 22px 20px 20px;
+    box-shadow: 0 8px 0 rgba(121, 85, 72, 0.14);
+}
+
+.step-num {
+    position: absolute;
+    top: -16px;
+    left: 20px;
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    background: #FFC0CB;
+    border: 3px solid #795548;
+    border-radius: 50%;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 1.05rem;
+}
+
+.step-list h3 {
+    margin: 10px 0 8px;
+    font-size: 1.1rem;
+}
+
+.step-list p {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.6;
+    font-weight: 500;
+    color: #8a6f5f;
+}
+
+/* ------------------------------------------------------------
+   FITUR
+   ------------------------------------------------------------ */
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.feature-card {
+    background: #FFF0F2;
+    border: 3px solid #FFC0CB;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 6px 0 rgba(255, 192, 203, 0.5);
+}
+
+.feature-icon {
+    display: inline-block;
+    font-size: 1.5rem;
+    margin-bottom: 8px;
+}
+
+.feature-card h3 {
+    font-size: 1.02rem;
+    margin-bottom: 6px;
+}
+
+.feature-card p {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    font-weight: 500;
+    color: #7a5f50;
+}
+
+/* ------------------------------------------------------------
+   CTA BAND
+   ------------------------------------------------------------ */
+.cta-band {
+    margin-top: 50px;
+    padding: 38px 24px;
+    text-align: center;
+    background: #FFF0F2;
+    border: 3px solid #795548;
+    border-radius: 28px;
+    box-shadow: 0 10px 0 rgba(121, 85, 72, 0.16);
+}
+
+.cta-band h2 {
+    font-size: clamp(1.4rem, 2.6vw, 1.9rem);
+    color: #5d4438;
+}
+
+.cta-band p {
+    margin: 10px 0 22px;
+    font-weight: 600;
+    color: #8a6f5f;
+}
+
+/* ------------------------------------------------------------
+   FOOTER
+   ------------------------------------------------------------ */
+.landing-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 22px 16px 40px;
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: #A9968A;
+}
+
+.landing-footer nav {
+    display: flex;
+    gap: 16px;
+}
+
+.landing-footer a:hover {
+    color: #795548;
+    text-decoration: underline;
+}
+
+/* ------------------------------------------------------------
+   HP / TABLET
+   ------------------------------------------------------------ */
+@media (max-width: 900px) {
+    .hero {
+        grid-template-columns: 1fr;
+        padding-top: 22px;
+        gap: 16px;
+        text-align: center;
+    }
+
+    .hero-lead,
+    .hero-note {
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .hero-actions {
+        justify-content: center;
+        margin-top: 18px;
+    }
+
+    /* Strip contoh dikecilkan biar tombol CTA tetap kelihatan tanpa scroll */
+    .hero-strips {
+        order: -1;
+        gap: 8px;
+    }
+
+    .strip-slot {
+        width: clamp(74px, 22%, 112px);
+    }
+
+    .hero h1 {
+        font-size: clamp(1.9rem, 7vw, 2.6rem);
+    }
+
+    .hero-note {
+        font-size: 0.8rem;
+    }
+
+    .step-list {
+        grid-template-columns: 1fr;
+        gap: 26px;
+    }
+
+    .feature-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 520px) {
+    .landing-nav {
+        top: 8px;
+        padding: 8px 12px;
+    }
+
+    .nav-link {
+        font-size: 0.85rem;
+    }
+
+    .btn-nav {
+        padding: 8px 13px;
+        font-size: 0.82rem;
+    }
+
+    .hero-actions .btn-main,
+    .hero-actions .btn-ghost {
+        width: 100%;
+    }
+
+    .landing-footer {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+}

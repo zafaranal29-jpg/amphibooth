@@ -1,17 +1,12 @@
 {
-    "$schema": "https://www.schemastore.org/package.json",
-    "private": true,
-    "type": "module",
-    "scripts": {
-        "build": "vite build",
-        "dev": "vite"
-    },
-    "devDependencies": {
-        "@tailwindcss/vite": "^4.0.0",
-        "axios": "^1.11.0",
-        "concurrently": "^9.0.1",
-        "laravel-vite-plugin": "^2.0.0",
-        "tailwindcss": "^4.0.0",
-        "vite": "^7.0.7"
-    }
+  "name": "amphibooth",
+  "private": true,
+  "description": "Animasi UI Amphibooth (vanilla motion). Build: npm run build:anim",
+  "scripts": {
+    "build:anim": "esbuild resources/js/animations/index.js --bundle --minify --format=iife --target=es2020 --outfile=public/js/animations.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "motion": "^14.14.0"
+  }
 }

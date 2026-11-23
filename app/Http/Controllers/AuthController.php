@@ -2,71 +2,98 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 
 class AuthController extends Controller
 {
-    // ==========================================
-    // 1. FUNGSI UNTUK REGISTER (Yang udah berhasil)
-    // ==========================================
-    public function proses_register(Request $request)
+    /**
+     * Tampilkan form login.
+     */
+    public function showLogin(): View
     {
-        $request->validate([
-            'username' => 'required',
-            'email' => 'required|email',
-            'password' => 'required'
-        ]);
-
-        DB::table('users')->insert([
-            'username' => $request->username,
-            'email' => $request->email,
-            'password' => Hash::make($request->password), 
-            'created_at' => now() 
-        ]);
-
-        return redirect('/login')->with('status', 'Akun berhasil dibuat, Cutie! 💕 Silahkan login.');
+        return view('auth.login');
     }
 
-    // ==========================================
-    // 2. FUNGSI UNTUK LOGIN (Ini yang barusan dicari Laravel)
-    // ==========================================
-    public function proses_login(Request $request)
+    /**
+     * Proses login memakai guard bawaan Laravel.
+     */
+    public function login(Request $request): RedirectResponse
     {
-        $request->validate([
-            'email' => 'required|email',
-            'password' => 'required'
+        $credentials = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required', 'string'],
+        ], [
+            'email.required' => 'Email wajib diisi, Cutie! 🥺',
+            'email.email' => 'Format email-nya belum bener nih 🥺',
+            'password.required' => 'Password jangan kosong ya! 🥺',
         ]);
 
-        // Cari user di database berdasarkan email
-        $user = DB::table('users')->where('email', $request->email)->first();
-
-        // Cek apakah email ketemu DAN password yang diketik cocok sama yang di database
-        if ($user && Hash::check($request->password, $user->password)) {
-            
-            // Bikin session buat nandain kalau user ini lagi login
-            Session::put('user_id', $user->id);
-            Session::put('username', $user->username);
-
-            // Langsung lempar ke halaman Booth! 📸
-            return redirect('/booth');
+        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
+            throw ValidationException::withMessages([
+                'email' => 'Email atau password salah, Cutie! 🥺',
+            ]);
         }
 
-        // Kalau email atau password salah, balikin ke halaman login bawa pesan error
-        return back()->withErrors(['login_error' => 'Email atau password salah, Cutie! 🥺']);
+        $request->session()->regenerate();
+
+        return redirect()->intended(route('booth'))
+            ->with('status', 'Selamat datang lagi, '.Auth::user()->name.'! 💕');
     }
 
-    // ==========================================
-    // 3. FUNGSI UNTUK LOGOUT
-    // ==========================================
-    public function logout()
+    /**
+     * Tampilkan form registrasi.
+     */
+    public function showRegister(): View
     {
-        // Hapus semua ingatan/session
-        Session::flush();
+        return view('auth.register');
+    }
 
-        // Balikin ke login
-        return redirect('/login');
+    /**
+     * Simpan user baru lalu langsung login.
+     */
+    public function register(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'min:3', 'max:50', 'unique:users,name'],
+            'email' => ['required', 'email', 'max:100', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ], [
+            'name.required' => 'Username wajib diisi! ✨',
+            'name.min' => 'Username minimal 3 huruf ya.',
+            'name.max' => 'Username maksimal 50 huruf.',
+            'name.unique' => 'Username itu sudah dipakai, coba yang lain 🌸',
+            'email.required' => 'Email wajib diisi!',
+            'email.email' => 'Format email-nya belum bener nih 🥺',
+            'email.unique' => 'Email ini sudah terdaftar, langsung login aja 💕',
+            'password.required' => 'Password wajib diisi!',
+            'password.min' => 'Password minimal 8 karakter biar aman 🔒',
+            'password.confirmed' => 'Konfirmasi password-nya belum sama 🥺',
+        ]);
+
+        $user = User::create($data);
+
+        Auth::login($user);
+        $request->session()->regenerate();
+
+        return redirect()->route('booth')
+            ->with('status', 'Akun berhasil dibuat, '.$user->name.'! Yuk foto 📸');
+    }
+
+    /**
+     * Logout (POST + CSRF, bukan link GET lagi).
+     */
+    public function logout(Request $request): RedirectResponse
+    {
+        Auth::logout();
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('login')->with('status', 'Sampai jumpa lagi! 👋');
     }
 }

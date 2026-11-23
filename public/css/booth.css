@@ -1,5 +1,15 @@
 /* ==========================================================================
-   AMPHIBOOTH - MAIN BOOTH CSS 
+   AMPHIBOOTH - BOOTH CSS (sesi strip 3 foto)
+   --------------------------------------------------------------
+   Struktur:
+   1. Dasar & navigasi
+   2. Layout booth
+   3. Kamera + HUD + countdown
+   4. Slot 3 foto
+   5. Panel langkah (filter / frame / hasil)
+   6. Preview strip + animasi cetak
+   7. Toast & helper
+   8. Mobile (bottom sheet) + print
    ========================================================================== */
 
 * {
@@ -20,7 +30,9 @@ body {
     align-items: center;
 }
 
-/* Navigasi Melayang di Atas */
+/* ==========================================================================
+   1. NAVIGASI
+   ========================================================================== */
 .top-nav {
     margin-top: 30px;
     background-color: #FFFFFF;
@@ -32,6 +44,7 @@ body {
     gap: 15px;
     box-shadow: 0px 8px 0px rgba(121, 85, 72, 0.15);
     z-index: 10;
+    position: relative;
 }
 
 .nav-btn {
@@ -42,6 +55,10 @@ body {
     padding: 10px 20px;
     border-radius: 30px;
     transition: all 0.2s ease;
+    background: none;
+    border: 2px solid transparent;
+    cursor: pointer;
+    font-size: 1rem;
 }
 
 .nav-btn.active {
@@ -66,212 +83,771 @@ body {
     box-shadow: 0px 4px 0px #795548;
 }
 
-/* Header & Judul */
+.logout-form {
+    display: inline-flex;
+    margin: 0;
+}
+
+/* ==========================================================================
+   2. LAYOUT
+   ========================================================================== */
 .main-content {
     width: 100%;
-    max-width: 1000px;
-    padding: 30px 20px;
+    max-width: 1080px;
+    padding: 30px 20px 80px;
     text-align: center;
     z-index: 5;
 }
 
 .header-title h1 {
     font-family: 'Fredoka', sans-serif;
-    font-size: 3.5rem;
+    font-size: 3.2rem;
     color: #FFC0CB;
     text-shadow: 2px 2px 0px #795548;
     margin-bottom: 5px;
 }
 
 .header-title p {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     font-weight: 600;
-    margin-bottom: 30px;
+    margin-bottom: 26px;
 }
 
-/* Grid Layout (Kamera Kiri, Panel Kanan) */
+.demo-banner {
+    margin: 0 auto 22px;
+    max-width: 640px;
+    padding: 12px 18px;
+    background-color: #FFF6E5;
+    border: 2px dashed #E0A83C;
+    border-radius: 18px;
+    font-weight: 700;
+    color: #8A5A12;
+    line-height: 1.5;
+}
+
+.demo-banner a {
+    color: #C2410C;
+}
+
 .booth-layout {
     display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 30px;
-    align-items: flex-start;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 26px;
+    align-items: start;
+    text-align: left;
 }
 
-/* Frame Layar Kamera */
+.camera-section {
+    min-width: 0;
+}
+
+/* ==========================================================================
+   3. KAMERA
+   ========================================================================== */
+.stage {
+    position: relative;
+}
+
 .camera-viewport {
-    background-color: #E6E6FA; /* Lavender Soft */
+    background-color: #E6E6FA;
     width: 100%;
-    aspect-ratio: 16/9;
-    border: 4px solid #98FF98; /* Mint Green Border */
-    border-radius: 30px;
-    box-shadow: 0px 0px 0px 3px #795548, 0px 12px 0px rgba(121, 85, 72, 0.15); /* Double border effect */
+    aspect-ratio: 4 / 3;
+    border: 4px solid #98FF98;
+    border-radius: 28px;
+    box-shadow: 0px 0px 0px 3px #795548, 0px 12px 0px rgba(121, 85, 72, 0.15);
     position: relative;
     overflow: hidden;
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-bottom: 20px;
 }
 
 .loading-text {
     font-weight: 700;
-    font-size: 1.2rem;
+    font-size: 1.05rem;
     color: #795548;
-    opacity: 0.5;
+    opacity: 0.6;
+    padding: 0 20px;
 }
 
-/* ==========================================================================
-   PERBAIKAN FITUR MIRROR (DOUBLE MIRROR FIX)
-   ========================================================================== */
-/* Video & Canvas Utuh */
-video,
-#canvas-overlay{
-    position:absolute;
-    top:0;
-    left:0;
-    width:100%;
-    height:100%;
-    object-fit:cover;
-    display:none;
+#video-feed {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1);
+    display: none;
+    z-index: 1;
 }
 
-/* KHUSUS VIDEO LIVE: Beri efek cermin agar natural saat sesi foto */
-video {
+#video-feed.no-mirror {
+    transform: none;
+}
+
+#face-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* Kalau mirror dimatikan, overlay ikut dibalik supaya stiker tetap
+   nempel di kepala (face-filter.js menggambar di ruang cermin). */
+#face-canvas.force-flip {
     transform: scaleX(-1);
 }
 
-/* KHUSUS CANVAS (FOTO BEKU): Tidak perlu CSS Mirror karena JS sudah membaliknya secara fisik */
-canvas {
-    transform: none; 
+.capture-buffer {
+    display: none;
 }
-/* ========================================================================== */
 
-/* Tombol Jepret Besar */
-.btn-shutter {
+/* HUD kecil di atas kamera */
+.viewport-hud {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    z-index: 6;
+    pointer-events: none;
+}
+
+.hud-chip {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #795548;
+    background: rgba(255, 255, 255, 0.92);
+    border: 2px solid #795548;
+    border-radius: 999px;
+    padding: 5px 12px;
+    max-width: 55%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hud-ai {
+    font-family: 'Quicksand', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    border-color: #B7D8B7;
+    background-color: #F2FBF2;
+    color: #4C7A4C;
+}
+
+.hud-ai.error {
+    border-color: #F3B8BC;
+    background-color: #FFF5F5;
+    color: #D64550;
+}
+
+#countdown {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Fredoka', sans-serif;
+    font-size: 150px;
+    font-weight: 700;
+    color: #ffffff;
+    text-shadow: 0 0 10px rgba(0, 0, 0, .3), 0 0 30px rgba(0, 0, 0, .5);
+    display: none;
+    z-index: 9999;
+    user-select: none;
+    pointer-events: none;
+    animation: countZoom .9s ease;
+}
+
+@keyframes countZoom {
+    0% { transform: translate(-50%, -50%) scale(.3); opacity: 0; }
+    40% { transform: translate(-50%, -50%) scale(1.25); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+#camera-flash {
+    position: absolute;
+    inset: 0;
+    background: white;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 9998;
+}
+
+#camera-flash.active {
+    animation: cameraFlash .35s ease;
+}
+
+@keyframes cameraFlash {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* ==========================================================================
+   4. SLOT 3 FOTO
+   ========================================================================== */
+.slot-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 16px 0 14px;
+}
+
+.slot {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    border-radius: 18px;
+    border: 3px dashed #E3D5CB;
+    background-color: #FFFFFF;
+    cursor: default;
+    overflow: hidden;
+    padding: 0;
+    transition: all 0.2s ease;
+    font-family: 'Quicksand', sans-serif;
+}
+
+.slot-num {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 2rem;
+    color: #E3D5CB;
+}
+
+.slot img {
+    position: absolute;
+    inset: 0;
     width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.slot.filled {
+    border-style: solid;
+    border-color: #98FF98;
+    cursor: pointer;
+}
+
+.slot.filled .slot-num {
+    display: none;
+}
+
+.slot.filled:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 0 rgba(121, 85, 72, 0.15);
+}
+
+.slot-retake {
+    position: absolute;
+    inset: auto 0 0 0;
+    padding: 6px 0;
+    background: rgba(121, 85, 72, 0.82);
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.slot.filled:hover .slot-retake,
+.slot.filled:focus-visible .slot-retake {
+    opacity: 1;
+}
+
+.slot.capturing {
+    border-color: #FF6B6B;
+    border-style: solid;
+    animation: slotPulse 1s ease infinite;
+}
+
+@keyframes slotPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.5); }
+    50% { box-shadow: 0 0 0 8px rgba(255, 107, 107, 0); }
+}
+
+/* ==========================================================================
+   5. TOMBOL & PANEL
+   ========================================================================== */
+.shutter-row {
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
+}
+
+.btn-shutter {
+    flex: 1;
     background-color: #FF6B6B;
     color: #FFFFFF;
     font-family: 'Fredoka', sans-serif;
-    font-size: 1.8rem;
-    padding: 20px;
+    font-size: 1.5rem;
+    padding: 18px;
     border: 4px solid #795548;
-    border-radius: 30px;
+    border-radius: 26px;
     box-shadow: 0px 8px 0px #795548;
     cursor: pointer;
-    transition: all 0.2s ease;
-    text-shadow: 2px 2px 0px rgba(0,0,0,0.2);
+    transition: all 0.15s ease;
+    text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.2);
 }
 
-.btn-shutter:hover {
-    transform: translateY(-4px);
-    box-shadow: 0px 12px 0px #795548;
+.btn-shutter:hover:not(:disabled) {
+    transform: translateY(-3px);
+    box-shadow: 0px 11px 0px #795548;
     background-color: #FF8787;
 }
 
-.btn-shutter:active {
-    transform: translateY(8px);
-    box-shadow: 0px 0px 0px #795548;
+.btn-shutter:active:not(:disabled) {
+    transform: translateY(6px);
+    box-shadow: 0px 2px 0px #795548;
 }
 
-/* Panel Sisi Kanan (Filters) */
+.btn-shutter:disabled {
+    background-color: #F3B8BC;
+    cursor: not-allowed;
+    opacity: 0.8;
+}
+
+.btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1rem;
+    padding: 14px 18px;
+    border-radius: 20px;
+    border: 3px solid #795548;
+    background-color: #FFFFFF;
+    color: #795548;
+    box-shadow: 0px 5px 0px rgba(121, 85, 72, 0.3);
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.15s ease;
+}
+
+.btn-ghost:hover {
+    background-color: #FFF0F2;
+    transform: translateY(-2px);
+}
+
+.btn-ghost:active {
+    transform: translateY(3px);
+    box-shadow: 0px 1px 0px rgba(121, 85, 72, 0.3);
+}
+
+.side-panel {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
 .panel-box {
     background-color: #FFFFFF;
     border: 3px solid #795548;
-    border-radius: 30px;
-    padding: 25px;
-    box-shadow: 0px 12px 0px rgba(121, 85, 72, 0.15);
-    margin-bottom: 20px;
+    border-radius: 26px;
+    padding: 22px;
+    box-shadow: 0px 10px 0px rgba(121, 85, 72, 0.15);
 }
 
 .panel-box h3 {
     font-family: 'Fredoka', sans-serif;
-    font-size: 1.5rem;
-    margin-bottom: 20px;
+    font-size: 1.35rem;
+    margin-bottom: 14px;
+}
+
+.panel-subtitle {
+    font-size: 1.05rem;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 2px dashed #F0E4DC;
 }
 
 .filter-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    max-height: 350px;
+    gap: 9px;
+    max-height: 300px;
     overflow-y: auto;
-    padding-right: 5px;
+    padding-right: 4px;
 }
 
-/* Scrollbar Imut */
 .filter-list::-webkit-scrollbar { width: 8px; }
-.filter-list::-webkit-scrollbar-thumb { background: #FFC0CB; border-radius: 10px; border: 1px solid #795548; }
+.filter-list::-webkit-scrollbar-thumb {
+    background: #FFC0CB;
+    border-radius: 10px;
+    border: 1px solid #795548;
+}
 
 .btn-filter {
     background-color: #E6E6FA;
     border: 2px solid #E6E6FA;
-    padding: 15px;
-    border-radius: 20px;
+    padding: 12px 14px;
+    border-radius: 18px;
     font-family: 'Quicksand', sans-serif;
     font-weight: 700;
-    font-size: 1rem;
+    font-size: 0.95rem;
     color: #795548;
     cursor: pointer;
     text-align: left;
-    transition: all 0.3s ease;
+    transition: all 0.25s ease;
 }
 
-.btn-filter:hover {
+.btn-filter:hover:not(:disabled) {
     border-color: #795548;
-    transform: translateX(5px);
+    transform: translateX(4px);
 }
 
 .btn-filter.active {
     background-color: #FFC0CB;
-    border: 2px solid #795548;
+    border-color: #795548;
     box-shadow: 4px 4px 0px rgba(121, 85, 72, 0.1);
 }
 
-/* Tombol Action Save/Delete */
-.action-buttons {
+.btn-filter:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.filter-list-inline {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    max-height: none;
+}
+
+.filter-list-inline .btn-filter {
+    text-align: center;
+    font-size: 0.85rem;
+    padding: 10px 6px;
+}
+
+/* Frame picker — kartu dengan thumbnail visual */
+.frame-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    max-height: 336px;
+    overflow-y: auto;
+    padding: 2px 6px 6px 2px;
+    margin-bottom: 12px;
+    overscroll-behavior: contain;
+}
+
+.frame-grid::-webkit-scrollbar { width: 8px; }
+.frame-grid::-webkit-scrollbar-thumb {
+    background: #FFC0CB;
+    border-radius: 10px;
+    border: 1px solid #795548;
+}
+
+.frame-card {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 5px;
+    border-radius: 14px;
+    border: 2px solid #EDE6F7;
+    background-color: #FBF9FF;
+    cursor: pointer;
+    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.frame-card:hover {
+    border-color: #FFC0CB;
+    transform: translateY(-2px);
+}
+
+.frame-card.active {
+    border-color: #795548;
+    background-color: #FFF0F2;
+    box-shadow: 3px 3px 0 rgba(121, 85, 72, 0.15);
+}
+
+.frame-thumb {
+    display: block;
+    width: 100%;
+    line-height: 0;
+    border-radius: 10px;
+    overflow: hidden;
+    background-color: #FFFFFF;
+    border: 1px solid rgba(121, 85, 72, 0.12);
+}
+
+.frame-thumb canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.frame-name {
+    font-family: 'Quicksand', sans-serif;
+    font-weight: 700;
+    font-size: 0.68rem;
+    line-height: 1.15;
+    color: #795548;
+    text-align: center;
+}
+
+/* Setting row & switch */
+.setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.setting-row select,
+.text-input,
+.setting-row input[type="color"] {
+    font-family: 'Quicksand', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #795548;
+    background-color: #FFFDF9;
+    border: 2px solid #E3D5CB;
+    border-radius: 12px;
+    padding: 8px 10px;
+    max-width: 62%;
+}
+
+.text-input {
+    width: 100%;
+    max-width: none;
+    padding: 12px 14px;
+    border-radius: 16px;
+    margin-bottom: 10px;
+}
+
+.text-input:focus,
+.setting-row select:focus {
+    outline: none;
+    border-color: #FFC0CB;
+    box-shadow: 0 0 0 3px rgba(255, 192, 203, 0.35);
+}
+
+.setting-row input[type="color"] {
+    padding: 2px;
+    width: 60px;
+    height: 38px;
+    cursor: pointer;
+}
+
+.switch {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    margin: 8px 0;
+    cursor: pointer;
+}
+
+.switch input {
+    width: 18px;
+    height: 18px;
+    accent-color: #FF6B6B;
+    cursor: pointer;
+}
+
+.panel-hint {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #9E8A7D;
+    line-height: 1.5;
+    margin-top: 12px;
+}
+
+.action-buttons,
+.result-actions {
     display: flex;
     flex-direction: column;
     gap: 10px;
     margin-top: 20px;
-    padding-top: 20px;
-    border-top: 2px dashed #E6E6FA;
+    padding-top: 18px;
+    border-top: 2px dashed #F0E4DC;
 }
 
-.btn-save, .btn-delete {
+.result-actions {
+    border-top: none;
+    padding-top: 0;
+    margin-top: 14px;
+}
+
+.btn-save,
+.btn-delete {
     padding: 15px;
     font-family: 'Fredoka', sans-serif;
-    font-size: 1.2rem;
-    border-radius: 20px;
+    font-size: 1.15rem;
+    border-radius: 18px;
     cursor: pointer;
-    border: 2px solid #795548;
-    transition: all 0.2s ease;
+    border: 3px solid #795548;
+    transition: all 0.15s ease;
+    color: #795548;
 }
 
 .btn-save {
     background-color: #FFC0CB;
-    box-shadow: 0px 4px 0px #795548;
+    box-shadow: 0px 5px 0px #795548;
 }
 
 .btn-delete {
     background-color: #FFFDF9;
-    box-shadow: 0px 4px 0px #795548;
+    box-shadow: 0px 5px 0px rgba(121, 85, 72, 0.5);
+}
+
+.btn-save:hover, .btn-delete:hover {
+    transform: translateY(-2px);
 }
 
 .btn-save:active, .btn-delete:active {
     transform: translateY(4px);
-    box-shadow: 0px 0px 0px #795548;
+    box-shadow: 0px 1px 0px #795548;
 }
 
-.hidden { display: none !important; }
+.btn-save:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Tombol buka panel (khusus mobile) */
+.sheet-toggle {
+    display: none;
+}
 
 /* ==========================================================================
-   DEKORASI FLOATING ASSETS (TAMBAHAN: SUPER MERIAH ALA LOGIN)
+   6. PREVIEW STRIP + ANIMASI CETAK
    ========================================================================== */
+.strip-stage {
+    position: relative;
+    background-color: #FFF6FA;
+    border: 4px solid #FFC0CB;
+    border-radius: 28px;
+    box-shadow: 0px 0px 0px 3px #795548, 0px 12px 0px rgba(121, 85, 72, 0.15);
+    padding: 20px;
+    min-height: 320px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.strip-frame {
+    max-height: 62vh;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+#strip-canvas {
+    max-width: 100%;
+    max-height: 62vh;
+    width: auto;
+    height: auto;
+    border-radius: 6px;
+    box-shadow: 0 10px 28px rgba(121, 85, 72, 0.28);
+    background: #fff;
+}
+
+.printing-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 253, 249, 0.92);
+    border-radius: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    z-index: 20;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1.2rem;
+    color: #795548;
+}
+
+.printer {
+    font-size: 3rem;
+    animation: printerBounce 0.9s ease-in-out infinite;
+}
+
+@keyframes printerBounce {
+    0%, 100% { transform: translateY(0) rotate(-4deg); }
+    50% { transform: translateY(-10px) rotate(4deg); }
+}
+
+/* ==========================================================================
+   7. TOAST & HELPER
+   ========================================================================== */
+.hidden {
+    display: none !important;
+}
+
+/* Atribut `hidden` harus menang atas display:flex/block milik komponen
+   (mis. overlay "Mencetak" yang punya display:flex). */
+[hidden] {
+    display: none !important;
+}
+
+#toast {
+    position: fixed;
+    left: 50%;
+    bottom: 32px;
+    transform: translate(-50%, 120%);
+    max-width: min(420px, 90vw);
+    padding: 14px 22px;
+    background-color: #FFFFFF;
+    border: 3px solid #795548;
+    border-radius: 22px;
+    box-shadow: 0px 8px 0px rgba(121, 85, 72, 0.2);
+    font-family: 'Quicksand', sans-serif;
+    font-weight: 700;
+    color: #795548;
+    text-align: center;
+    z-index: 10000;
+    opacity: 0;
+    transition: transform 0.25s ease, opacity 0.25s ease;
+    pointer-events: none;
+}
+
+#toast.show {
+    transform: translate(-50%, 0);
+    opacity: 1;
+}
+
+#toast.error {
+    border-color: #D64550;
+    color: #D64550;
+    background-color: #FFF5F5;
+}
+
+.flash-status {
+    margin: 0 auto 22px;
+    max-width: 640px;
+    padding: 12px 18px;
+    background-color: #EAF7EE;
+    border: 2px solid #74B77F;
+    border-radius: 18px;
+    font-weight: 700;
+    color: #2F6B3B;
+}
+
+/* Dekorasi floating */
 .floating-assets {
-    position: fixed; 
+    position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
     pointer-events: none;
-    z-index: 1; /* Diset 1 agar di belakang kamera & tombol */
+    z-index: 1;
 }
 
 .asset {
@@ -279,17 +855,15 @@ canvas {
     font-size: 2.5rem;
     filter: drop-shadow(2px 4px 0px rgba(121, 85, 72, 0.15));
     animation: floatyAnimation 4s ease-in-out infinite alternate;
-    pointer-events: auto; /* Biar bisa disentuh mouse */
+    pointer-events: auto;
     transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-/* Animasi Kaget / Membesar saat disentuh mouse */
 .asset:hover {
     transform: scale(1.5) rotate(15deg) !important;
     animation-play-state: paused;
 }
 
-/* Kotak untuk teks melayang */
 .text-cute, .text-boop {
     font-family: 'Fredoka', sans-serif;
     font-size: 1.5rem;
@@ -302,7 +876,6 @@ canvas {
     box-shadow: 0px 4px 0px rgba(121, 85, 72, 0.1);
 }
 
-/* Koordinat Diatur Supaya Mengelilingi Tepi Layar */
 .frog-1    { top: 10%; left: 8%; animation-delay: 0s; }
 .star-1    { top: 45%; left: 4%; animation-delay: 0.5s; font-size: 2.2rem; }
 .heart-1   { bottom: 15%; left: 10%; animation-delay: 1s; }
@@ -311,7 +884,7 @@ canvas {
 .cat-1     { top: 40%; right: 6%; animation-delay: 0.7s; }
 .bunny-1   { bottom: 35%; left: 5%; animation-delay: 1.2s; }
 .flower-1  { top: 75%; right: 10%; animation-delay: 1.8s; }
-.ribbon-1  { top: 8%; left: 22%; animation-delay: 0.3s; font-size: 2rem;}
+.ribbon-1  { top: 8%; left: 22%; animation-delay: 0.3s; font-size: 2rem; }
 .bear-1    { bottom: 8%; right: 25%; animation-delay: 1.1s; }
 .text-cute { top: 18%; right: 20%; animation-delay: 2.2s; }
 .text-boop { bottom: 12%; left: 25%; animation-delay: 0.8s; }
@@ -322,119 +895,183 @@ canvas {
 }
 
 /* ==========================================================================
-   TAMBAHAN: FIX POSISI PANEL AGAR BERTUMPUK (SWAP DI TEMPAT YANG SAMA)
+   8a. MOBILE & TABLET
    ========================================================================== */
-.side-panel {
-    position: relative;
-    width: 100%;
-    min-height: 520px; /* Menjaga agar tombol save/delete tidak terpotong */
+@media (max-width: 900px) {
+    .main-content {
+        padding: 20px 14px 120px;
+    }
+
+    .header-title h1 {
+        font-size: 2.2rem;
+    }
+
+    .booth-layout {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .camera-viewport {
+        border-radius: 22px;
+    }
+
+    .btn-shutter {
+        font-size: 1.2rem;
+        padding: 15px;
+        border-radius: 22px;
+    }
+
+    .slot-strip {
+        gap: 8px;
+        margin: 12px 0 10px;
+    }
+
+    /* Panel jadi bottom sheet supaya kamera tetap lega */
+    .side-panel {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 60;
+        background-color: #FFFDF9;
+        border-top: 3px solid #795548;
+        border-radius: 26px 26px 0 0;
+        box-shadow: 0 -10px 30px rgba(121, 85, 72, 0.25);
+        padding: 10px 14px 22px;
+        max-height: 82vh;
+        overflow-y: auto;
+        gap: 12px;
+        transform: translateY(calc(100% - 62px));
+        transition: transform 0.3s ease;
+    }
+
+    .side-panel.sheet-open {
+        transform: translateY(0);
+    }
+
+    .sheet-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        padding: 10px;
+        background-color: #FFC0CB;
+        border: 2px solid #795548;
+        border-radius: 16px;
+        font-family: 'Fredoka', sans-serif;
+        font-size: 1rem;
+        color: #795548;
+        cursor: pointer;
+    }
+
+    .panel-box {
+        border-radius: 20px;
+        padding: 16px;
+        box-shadow: 0 6px 0 rgba(121, 85, 72, 0.12);
+    }
+
+    .strip-stage {
+        padding: 12px;
+        min-height: 260px;
+    }
+
+    .strip-frame,
+    #strip-canvas {
+        max-height: 52vh;
+    }
+
+    .btn-shutter,
+    .slot-strip {
+        margin-bottom: 4px;
+    }
+
+    /* Chip status AI boleh membungkus di layar sempit (jangan kepotong). */
+    .hud-ai {
+        max-width: 62%;
+        white-space: normal;
+        line-height: 1.25;
+        font-size: 0.66rem;
+    }
+
+    /* Bottom sheet jangan ketiban home indicator iOS. */
+    .side-panel {
+        padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+    }
+
+    #toast {
+        bottom: calc(78px + env(safe-area-inset-bottom, 0px));
+    }
 }
 
-#filters-panel, #post-capture-panel {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
+@media (max-width: 480px) {
+    .filter-list {
+        max-height: 220px;
+    }
+
+    .header-title p {
+        font-size: 0.95rem;
+    }
 }
 
 /* ==========================================================================
-   TAMBAHAN: OVERLAY STIKER STATIS
+   8b. PRINT: cuma lembar strip yang dicetak
    ========================================================================== */
-#live-overlay {
-    position: absolute;
-    top: 0; 
-    left: 0;
-    width: 100%; 
-    height: 100%;
-    object-fit: contain; /* Biar stiker gak gepeng */
-    pointer-events: none; /* Biar gak nutupin klik */
-    z-index: 2; /* Berada di depan video */
-    display: none; /* Default disembunyikan */
-}
-
-/* ==========================================================================
-   COUNTDOWN TIMER
-   ========================================================================== */
-
-#countdown{
-    position:absolute;
-    top:50%;
-    left:50%;
-    transform:translate(-50%,-50%);
-    font-family:'Fredoka',sans-serif;
-    font-size:150px;
-    font-weight:700;
-    color:#ffffff;
-    text-shadow:
-        0 0 10px rgba(0,0,0,.3),
-        0 0 30px rgba(0,0,0,.5);
-    display:none;
-    z-index:9999;
-    animation:countZoom .9s ease;
-    user-select:none;
-}
-
-@keyframes countZoom{
-
-    0%{
-        transform:translate(-50%,-50%) scale(.3);
-        opacity:0;
+@media print {
+    @page {
+        margin: 8mm;
     }
 
-    40%{
-        transform:translate(-50%,-50%) scale(1.25);
-        opacity:1;
+    body {
+        background: #fff !important;
+        background-image: none !important;
+        display: block;
     }
 
-    100%{
-        transform:translate(-50%,-50%) scale(1);
-        opacity:1;
+    .top-nav,
+    .header-title,
+    .demo-banner,
+    .flash-status,
+    .slot-strip,
+    .shutter-row,
+    .side-panel,
+    .floating-assets,
+    #toast,
+    .viewport-hud,
+    .printing-overlay,
+    .flash-status {
+        display: none !important;
     }
 
-}
-
-/* ==========================================================================
-   CAMERA FLASH
-   ========================================================================== */
-
-#camera-flash{
-    position:absolute;
-    inset:0;
-    background:white;
-    opacity:0;
-    pointer-events:none;
-    z-index:9998;
-}
-
-#camera-flash.active{
-    animation:cameraFlash .35s ease;
-}
-
-@keyframes cameraFlash{
-
-    0%{
-        opacity:1;
+    .main-content,
+    .booth-layout,
+    .camera-section,
+    .stage,
+    .strip-stage {
+        display: block !important;
+        position: static !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+        background: #fff !important;
+        max-width: none !important;
+        width: auto !important;
+        min-height: 0 !important;
     }
 
-    100%{
-        opacity:0;
+    #camera-viewport {
+        display: none !important;
     }
 
-}
+    .strip-frame,
+    #strip-canvas {
+        max-height: none !important;
+        max-width: 100% !important;
+        box-shadow: none !important;
+    }
 
-/* Countdown tidak bisa diklik */
-#countdown,
-#camera-flash{
-    pointer-events:none;
-}
-
-#face-canvas{
-    position:absolute;
-    top:0;
-    left:0;
-    width:100%;
-    height:100%;
-    pointer-events:none;
-    z-index:5;
-    display:block !important;
+    .strip-stage {
+        page-break-inside: avoid;
+    }
 }

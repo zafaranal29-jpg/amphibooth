@@ -1,219 +1,1178 @@
 // ======================================================
-// AMPHIBOOTH - BOOTH CORE ENGINE FINAL
-// CAMERA + TIMER + FLASH + CAPTURE (LARAVEL VERSION)
+// AMPHIBOOTH - BOOTH CORE (SESI STRIP 3 FOTO)
+// ------------------------------------------------------
+// Alur:
+//   setup  -> pilih filter + kamera
+//   sesi   -> 3x (jeda -> hitungan -> jepret -> flash)
+//   finish -> retake per slot, pilih frame/caption/efek (preview live)
+//   result -> simpan / download / print / share
+//
+// Catatan teknis:
+// - Stiker AI digambar di "ruang cermin" oleh face-filter.js. Kalau mirror
+//   dimatikan, koordinat stiker dicerminkan balik (x' = width - x) supaya
+//   tetap nempel di kepala.
+// - Hasil akhir selalu JPEG (bukan PNG) supaya ringan: 1 strip < 1 MB.
 // ======================================================
+(function () {
+    'use strict';
 
-document.addEventListener("DOMContentLoaded", () => {
-    
-    // ===============================
-    // Cek Session & Logout udah dihapus dari JS
-    // (Karena udah di-handle langsung sama Blade/Controller Laravel)
-    // ===============================
+    const appConfig = JSON.parse(document.getElementById('app-config').textContent);
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
-    // ===============================
-    // CAMERA SETUP
-    // ===============================
-    const video = document.getElementById("video-feed");
-    const loading = document.querySelector(".loading-text");
+    const SHOT_COUNT = 3;
+    const LAYOUT = 'strip3';
+    const PAUSE_BETWEEN_SHOTS = 850;
 
-    navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: false
-    })
-    .then(stream => {
-        video.srcObject = stream;
-        video.style.display = "block";
-        loading.style.display = "none";
-    })
-    .catch(err => {
-        console.log(err);
-        loading.innerText = "Kamera tidak bisa digunakan 🥺";
-    });
+    document.addEventListener('DOMContentLoaded', function () {
+        // ---------- ELEMEN ----------
+        const video = document.getElementById('video-feed');
+        const loadingText = document.getElementById('loading-text');
+        const viewport = document.getElementById('camera-viewport');
+        const faceCanvas = document.getElementById('face-canvas');
+        const buffer = document.getElementById('canvas-overlay');
+        const countdownEl = document.getElementById('countdown');
+        const flashEl = document.getElementById('camera-flash');
+        const progressEl = document.getElementById('shot-progress');
+        const statusEl = document.getElementById('filter-status');
 
-    // ===============================
-    // ELEMENT SELECTORS
-    // ===============================
-    const shutter = document.getElementById("shutter-button");
-    const canvas = document.getElementById("canvas-overlay");
-    const ctx = canvas.getContext("2d");
-    const countdown = document.getElementById("countdown");
-    const flash = document.getElementById("camera-flash");
-    const filtersPanel = document.getElementById("filters-panel");
-    const postPanel = document.getElementById("post-capture-panel");
+        const shutter = document.getElementById('shutter-button');
+        const shutterLabel = document.getElementById('shutter-label');
+        const restartButton = document.getElementById('restart-button');
 
-    let originalImage = null;
-    let capturing = false;
+        const slotEls = Array.prototype.slice.call(document.querySelectorAll('.slot'));
+        const slotStrip = document.getElementById('slot-strip');
+        const stage = document.getElementById('strip-stage');
+        const stripCanvas = document.getElementById('strip-canvas');
+        const printingOverlay = document.getElementById('printing-overlay');
 
-    // ===============================
-    // TIMER SENSOR & SNAP
-    // ===============================
-    shutter.addEventListener("click", () => {
-        if (capturing) return;
+        const setupPanel = document.getElementById('setup-panel');
+        const finishPanel = document.getElementById('finish-panel');
+        const resultPanel = document.getElementById('result-panel');
+        const resultSize = document.getElementById('result-size');
+        const sidePanel = document.getElementById('side-panel');
+        const sheetToggle = document.getElementById('sheet-toggle');
+        const sheetToggleText = document.getElementById('sheet-toggle-text');
 
-        capturing = true;
-        shutter.disabled = true;
-        let number = 3;
+        const cameraSelect = document.getElementById('camera-select');
+        const qualitySelect = document.getElementById('quality-select');
+        const timerSelect = document.getElementById('timer-select');
+        const mirrorToggle = document.getElementById('mirror-toggle');
+        const soundToggle = document.getElementById('sound-toggle');
 
-        countdown.innerText = number;
-        countdown.style.display = "block";
+        const frameList = document.getElementById('frame-list');
+        const frameColorRow = document.getElementById('frame-color-row');
+        const frameColorInput = document.getElementById('frame-color');
+        const captionInput = document.getElementById('caption-input');
+        const dateToggle = document.getElementById('date-toggle');
+        const saveButton = document.getElementById('save-button');
+        const finishReset = document.getElementById('finish-reset');
 
-        let timer = setInterval(() => {
-            number--;
-            if (number > 0) {
-                countdown.innerText = number;
-            } else {
-                clearInterval(timer);
-                countdown.style.display = "none";
-                takePhoto();
+        const downloadButton = document.getElementById('download-button');
+        const printButton = document.getElementById('print-button');
+        const shareButton = document.getElementById('share-button');
+        const galleryLink = document.getElementById('gallery-link');
+        const againButton = document.getElementById('again-button');
+        const resultHint = document.getElementById('result-hint');
+
+        const toastEl = document.getElementById('toast');
+
+        // ---------- STATE ----------
+        const state = {
+            phase: 'setup',       // setup | capturing | finish | result
+            shots: new Array(SHOT_COUNT).fill(null),
+            filter: 'none',
+            frame: 'polaroid',
+            frameColor: '#ffb3c7',
+            effect: 'none',
+            caption: '',
+            dateStamp: true,
+            mirror: true,
+            sound: true,
+            saving: false,
+            stream: null,
+            savedCollage: null,
+            audio: null,
+            busy: false
+        };
+
+        let toastTimer = null;
+
+        // ----------------------------------------------
+        // TOAST
+        // ----------------------------------------------
+        function toast(message, isError) {
+            if (!toastEl) {
+                return;
             }
-        }, 1000);
-    });
 
-    // ===============================
-    // TAKE PHOTO (PROSES CAPTURE)
-    // ===============================
-    function takePhoto() {
-        // FLASH EFFECT
-        flash.classList.add("active");
-        setTimeout(() => {
-            flash.classList.remove("active");
-        }, 300);
+            toastEl.textContent = message;
+            toastEl.classList.toggle('error', Boolean(isError));
+            toastEl.classList.add('show');
 
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(function () {
+                toastEl.classList.remove('show');
+            }, 3200);
+        }
 
-        // MIRROR EFFECT & GAMBAR VIDEO + CANVAS STIKER
-        ctx.save();
-        ctx.translate(canvas.width, 0);
-        ctx.scale(-1, 1);
-        
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        const faceCanvas = document.getElementById("face-canvas");
-        ctx.drawImage(faceCanvas, 0, 0, canvas.width, canvas.height);
-        
-        ctx.restore();
+        // ----------------------------------------------
+        // SUARA (WebAudio, tanpa file)
+        // ----------------------------------------------
+        function audioCtx() {
+            if (!state.sound) {
+                return null;
+            }
 
-        // SIMPAN GAMBAR ASLI UNTUK EFEK
-        originalImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            if (!state.audio) {
+                const Ctx = window.AudioContext || window.webkitAudioContext;
 
-        // UBAH TAMPILAN UI
-        video.style.display = "none";
-        canvas.style.display = "block";
-        shutter.style.display = "none";
-        filtersPanel.classList.add("hidden");
-        postPanel.classList.remove("hidden");
+                if (!Ctx) {
+                    return null;
+                }
 
-        capturing = false;
-        shutter.disabled = false;
-    }
+                state.audio = new Ctx();
+            }
 
-    // ===============================
-    // EFFECT FILTERS (GRAYSCALE, SEPIA, DLL)
-    // ===============================
-    function applyEffect(effect) {
-        if (!originalImage) return;
+            if (state.audio.state === 'suspended') {
+                state.audio.resume();
+            }
 
-        ctx.putImageData(originalImage, 0, 0);
-        if (effect === "none") return;
+            return state.audio;
+        }
 
-        let img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        let data = img.data;
+        function beep(frequency, duration, type, volume) {
+            const ctx = audioCtx();
 
-        if (effect === "grayscale") {
-            for (let i = 0; i < data.length; i += 4) {
-                let avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-                data[i] = avg; data[i + 1] = avg; data[i + 2] = avg;
+            if (!ctx) {
+                return;
+            }
+
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.type = type || 'sine';
+            osc.frequency.value = frequency;
+            gain.gain.setValueAtTime(volume || 0.08, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + duration);
+        }
+
+        function shutterSound() {
+            const ctx = audioCtx();
+
+            if (!ctx) {
+                return;
+            }
+
+            // Klik shutter: noise pendek + blip.
+            const duration = 0.12;
+            const frames = Math.floor(ctx.sampleRate * duration);
+            const noise = ctx.createBuffer(1, frames, ctx.sampleRate);
+            const data = noise.getChannelData(0);
+
+            for (let i = 0; i < frames; i += 1) {
+                data[i] = (Math.random() * 2 - 1) * (1 - i / frames);
+            }
+
+            const source = ctx.createBufferSource();
+            const gain = ctx.createGain();
+
+            source.buffer = noise;
+            gain.gain.value = 0.16;
+            source.connect(gain);
+            gain.connect(ctx.destination);
+            source.start();
+
+            beep(880, 0.06, 'square', 0.05);
+        }
+
+        // ----------------------------------------------
+        // KAMERA
+        // ----------------------------------------------
+        function stopStream() {
+            if (state.stream) {
+                state.stream.getTracks().forEach(function (track) {
+                    track.stop();
+                });
+                state.stream = null;
             }
         }
 
-        if (effect === "invert") {
-            for (let i = 0; i < data.length; i += 4) {
-                data[i] = 255 - data[i];
-                data[i + 1] = 255 - data[i + 1];
-                data[i + 2] = 255 - data[i + 2];
+        async function listCameras() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+                return;
+            }
+
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const cameras = devices.filter(function (device) {
+                    return device.kind === 'videoinput';
+                });
+
+                const current = cameraSelect.value;
+
+                cameraSelect.innerHTML = '<option value="">Kamera utama</option>';
+
+                cameras.forEach(function (camera, index) {
+                    const option = document.createElement('option');
+                    option.value = camera.deviceId;
+                    option.textContent = camera.label || 'Kamera ' + (index + 1);
+                    cameraSelect.appendChild(option);
+                });
+
+                cameraSelect.value = current || '';
+            } catch (error) {
+                console.log(error);
             }
         }
 
-        if (effect === "sepia") {
-            for (let i = 0; i < data.length; i += 4) {
-                let r = data[i], g = data[i + 1], b = data[i + 2];
-                data[i] = r * .393 + g * .769 + b * .189;
-                data[i + 1] = r * .349 + g * .686 + b * .168;
-                data[i + 2] = r * .272 + g * .534 + b * .131;
+        async function startCamera() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                loadingText.textContent = 'Browser ini belum bisa akses kamera 😢 (butuh localhost atau HTTPS)';
+                return;
+            }
+
+            loadingText.style.display = 'block';
+            loadingText.textContent = 'Menyalakan kamera... 👀';
+            video.style.display = 'none';
+
+            const quality = parseInt(qualitySelect.value, 10) || 1280;
+            const deviceId = cameraSelect.value;
+
+            const constraints = {
+                audio: false,
+                video: {
+                    width: { ideal: quality },
+                    height: { ideal: Math.round(quality * 0.75) },
+                    facingMode: 'user'
+                }
+            };
+
+            if (deviceId) {
+                constraints.video.deviceId = { exact: deviceId };
+                delete constraints.video.facingMode;
+            }
+
+            stopStream();
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                state.stream = stream;
+                video.srcObject = stream;
+
+                await video.play().catch(function () {});
+                video.style.display = 'block';
+                loadingText.style.display = 'none';
+
+                // Titik hijau berdenyut: kamera benar-benar siap.
+                if (window.AmphiboothAnim) {
+                    window.AmphiboothAnim.ready(viewport);
+                }
+
+                // Kamera siap: tombol jepret baru boleh dipakai.
+                if (state.phase === 'setup') {
+                    shutter.disabled = false;
+                    shutterLabel.textContent = state.shots.some(Boolean)
+                        ? 'Lanjut Jepret 📸'
+                        : 'Mulai Sesi (3 foto)';
+                }
+
+                await listCameras();
+            } catch (error) {
+                console.log(error);
+                loadingText.style.display = 'block';
+                loadingText.textContent = 'Kamera tidak bisa dipakai 🥺 (' + (error.name || 'error') + ')';
+
+                if (error.name === 'NotAllowedError') {
+                    loadingText.textContent = 'Izinkan akses kamera di browser, lalu refresh halaman ya 🥺';
+                }
+
+                // Tanpa kamera, jangan biarkan tombol jepret seolah siap.
+                shutter.disabled = true;
+                shutterLabel.textContent = 'Kamera belum siap 🥺';
+
+                toast('Izinkan akses kamera dulu ya biar bisa foto 📸', true);
             }
         }
 
-        ctx.putImageData(img, 0, 0);
-    }
+        // ----------------------------------------------
+        // KOMPOSIT 1 FRAME (VIDEO + STIKER AI)
+        // ----------------------------------------------
+        function compositeFrame() {
+            const width = video.videoWidth;
+            const height = video.videoHeight;
 
-    document.querySelectorAll("[data-effect]").forEach(btn => {
-        btn.addEventListener("click", () => {
-            document.querySelectorAll("[data-effect]").forEach(b => b.classList.remove("active"));
-            btn.classList.add("active");
-            applyEffect(btn.dataset.effect);
-        });
-    });
-
-    // ===============================
-    // DELETE FOTO (RETAKE)
-    // ===============================
-    document.getElementById("delete-button").addEventListener("click", () => {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        canvas.style.display = "none";
-        video.style.display = "block";
-        shutter.style.display = "block";
-        postPanel.classList.add("hidden");
-        filtersPanel.classList.remove("hidden");
-        originalImage = null;
-    });
-
-    // ===============================
-    // SAVE FOTO (KIRIM KE LARAVEL)
-    // ===============================
-    document.getElementById("save-button").addEventListener("click", () => {
-        
-        let image = canvas.toDataURL("image/png");
-        
-        // Ambil token keamanan CSRF dari file blade
-        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
-        fetch('/simpan-foto', {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRF-TOKEN": csrfToken // WAJIB ADA
-            },
-            body: JSON.stringify({
-                image: image
-            })
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                alert(data.message);
-                // Redirect otomatis ke gallery setelah berhasil disimpan
-                window.location.href = '/gallery'; 
-            } else {
-                alert("Gagal menyimpan foto: " + data.message);
+            if (!width || !height) {
+                return null;
             }
-        })
-        .catch(err => {
-            console.log(err);
-            alert("Error terjadi saat menyimpan foto ke server.");
-        });
-    });
 
-    // ==========================================
-    // PILIH FILTER AI (FROG, CAT, DLL)
-    // ==========================================
-    document.querySelectorAll("[data-filter]").forEach(btn => {
-        btn.addEventListener("click", () => {
-            document.querySelectorAll("[data-filter]").forEach(b => b.classList.remove("active"));
-            btn.classList.add("active");
-            window.aiFilter = btn.dataset.filter;
-            console.log("Filter:", window.aiFilter);
-        });
-    });
+            buffer.width = width;
+            buffer.height = height;
 
-});
+            const ctx = buffer.getContext('2d');
+            ctx.clearRect(0, 0, width, height);
+
+            // 1) Video (tercermin atau tidak).
+            ctx.save();
+
+            if (state.mirror) {
+                ctx.translate(width, 0);
+                ctx.scale(-1, 1);
+            }
+
+            ctx.drawImage(video, 0, 0, width, height);
+            ctx.restore();
+
+            // 2) Stiker AI: face-filter.js menggambar di ruang cermin,
+            //    jadi kalau mirror mati koordinatnya dicerminkan balik.
+            const draws = (window.faceFilter && window.faceFilter.getLastDraws)
+                ? window.faceFilter.getLastDraws()
+                : [];
+
+            draws.forEach(function (item) {
+                if (typeof item.cx === 'undefined') {
+                    return;
+                }
+
+                const cx = state.mirror ? item.cx : width - item.cx;
+                const rotation = state.mirror ? (item.rot || 0) : -(item.rot || 0);
+
+                ctx.save();
+                ctx.translate(cx, item.cy);
+                ctx.rotate(rotation);
+                ctx.drawImage(
+                    item.img,
+                    item.sx, item.sy, item.sw, item.sh,
+                    -item.dw / 2, -item.dh / 2, item.dw, item.dh
+                );
+                ctx.restore();
+            });
+
+            return buffer;
+        }
+
+        // Potong tengah (cover) ke rasio sel strip 4:3.
+        function coverCanvas(source, width, height) {
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+
+            const ctx = canvas.getContext('2d');
+            const sw = source.width;
+            const sh = source.height;
+            const scale = Math.max(width / sw, height / sh);
+            const dw = sw * scale;
+            const dh = sh * scale;
+
+            ctx.drawImage(source, (width - dw) / 2, (height - dh) / 2, dw, dh);
+
+            return canvas;
+        }
+
+        // ----------------------------------------------
+        // HITUNGAN 3-2-1
+        // ----------------------------------------------
+        function wait(ms) {
+            return new Promise(function (resolve) {
+                setTimeout(resolve, ms);
+            });
+        }
+
+        async function runCountdown(seconds) {
+            if (seconds <= 0) {
+                return;
+            }
+
+            countdownEl.style.display = 'block';
+
+            for (let n = seconds; n > 0; n -= 1) {
+                countdownEl.textContent = String(n);
+                // restart animasi zoom
+                countdownEl.style.animation = 'none';
+                void countdownEl.offsetWidth;
+                countdownEl.style.animation = '';
+
+                // cincin yang menyebar tiap angka
+                if (window.AmphiboothAnim) {
+                    window.AmphiboothAnim.countTick(countdownEl);
+                }
+
+                beep(440 + (seconds - n) * 60, 0.09, 'sine', 0.07);
+
+                await wait(1000);
+            }
+
+            countdownEl.style.display = 'none';
+        }
+
+        // ----------------------------------------------
+        // UI PER FASE
+        // ----------------------------------------------
+        function setPanels(active) {
+            [setupPanel, finishPanel, resultPanel].forEach(function (panel) {
+                if (panel) {
+                    panel.classList.toggle('hidden', panel !== active);
+                }
+            });
+
+            // Animasi masuk panel (opsional, kalau bundle animasi termuat).
+            if (active && window.AmphiboothAnim) {
+                window.AmphiboothAnim.panel(active);
+            }
+        }
+
+        function setProgress(text) {
+            progressEl.textContent = text;
+        }
+
+        function updateShutterLabel() {
+            const filled = state.shots.filter(Boolean).length;
+
+            if (state.phase === 'setup' && filled === 0) {
+                shutterLabel.textContent = 'Mulai Sesi (3 foto)';
+                return;
+            }
+
+            if (state.phase === 'capturing') {
+                shutterLabel.textContent = 'Jepret... 📸';
+                return;
+            }
+
+            shutterLabel.textContent = 'Sesi Selesai ✨';
+        }
+
+        function lockSetup(locked) {
+            document.querySelectorAll('[data-filter]').forEach(function (button) {
+                button.disabled = locked;
+            });
+
+            [cameraSelect, qualitySelect, timerSelect, mirrorToggle].forEach(function (el) {
+                el.disabled = locked;
+            });
+        }
+
+        function renderSlots() {
+            slotEls.forEach(function (slot, index) {
+                const shot = state.shots[index];
+                const img = slot.querySelector('img');
+
+                slot.classList.toggle('filled', Boolean(shot));
+                slot.classList.remove('capturing');
+
+                if (shot) {
+                    if (!img.dataset.url) {
+                        img.src = shot.thumbUrl;
+                        img.dataset.url = '1';
+                    }
+                    img.hidden = false;
+
+                    if (!slot.dataset.filled) {
+                        slot.dataset.filled = '1';
+                        if (window.AmphiboothAnim) {
+                            window.AmphiboothAnim.pop(img);
+                        }
+                    }
+                } else {
+                    img.hidden = true;
+                    img.removeAttribute('src');
+                    delete img.dataset.url;
+                    delete slot.dataset.filled;
+                }
+            });
+
+            const filled = state.shots.filter(Boolean).length;
+            setProgress('Foto ' + Math.min(filled + (state.phase === 'capturing' ? 1 : 0), SHOT_COUNT) + '/' + SHOT_COUNT);
+        }
+
+        // ----------------------------------------------
+        // JEPRET SATU SLOT
+        // ----------------------------------------------
+        async function captureSlot(index) {
+            if (state.busy) {
+                return;
+            }
+
+            const frame = compositeFrame();
+
+            if (!frame) {
+                toast('Kamera belum siap, tunggu sebentar ya 👀', true);
+                return;
+            }
+
+            state.busy = true;
+            state.phase = 'capturing';
+            lockSetup(true);
+            shutter.disabled = true;
+            restartButton.hidden = true;
+
+            slotEls.forEach(function (slot, i) {
+                slot.classList.toggle('capturing', i === index);
+            });
+
+            setProgress('Bersiap foto ' + (index + 1) + '/' + SHOT_COUNT);
+            shutterLabel.textContent = 'Pose ' + (index + 1) + '... 📸';
+
+            await wait(index === 0 ? 450 : PAUSE_BETWEEN_SHOTS);
+
+            // Kalau retake, slot ini dikosongkan dulu.
+            state.shots[index] = null;
+            renderSlots();
+
+            await runCountdown(parseInt(timerSelect.value, 10));
+
+            // Ambil frame terbaru tepat setelah hitungan selesai.
+            const fresh = compositeFrame() || frame;
+
+            flashEl.classList.add('active');
+            shutterSound();
+            setTimeout(function () {
+                flashEl.classList.remove('active');
+            }, 320);
+
+            const full = document.createElement('canvas');
+            full.width = fresh.width;
+            full.height = fresh.height;
+            full.getContext('2d').drawImage(fresh, 0, 0);
+
+            const thumb = coverCanvas(full, 320, 240);
+
+            state.shots[index] = {
+                canvas: full,
+                thumbUrl: thumb.toDataURL('image/jpeg', 0.8)
+            };
+
+            slotEls[index].classList.remove('capturing');
+            renderSlots();
+
+            // Film maju: strip slot terdorong turun-naik.
+            if (window.AmphiboothAnim) {
+                window.AmphiboothAnim.advance(slotStrip);
+            }
+
+            state.busy = false;
+
+            const filled = state.shots.filter(Boolean).length;
+
+            if (filled >= SHOT_COUNT) {
+                await wait(520);
+                enterFinish();
+                return;
+            }
+
+            // Lanjut otomatis ke slot berikutnya yang kosong.
+            const next = state.shots.findIndex(function (shot) {
+                return !shot;
+            });
+
+            shutter.disabled = false;
+
+            if (next !== -1) {
+                captureSlot(next);
+            }
+        }
+
+        // ----------------------------------------------
+        // MASUK FASE FRAME
+        // ----------------------------------------------
+        function enterFinish() {
+            state.phase = 'finish';
+            state.shots.forEach(function (shot, index) {
+                if (shot && !shot.canvas) {
+                    // jaga-jaga
+                    state.shots[index] = null;
+                }
+            });
+
+            viewport.classList.add('hidden');
+            stage.classList.remove('hidden');
+            stripCanvas.classList.remove('hidden');
+
+            setPanels(finishPanel);
+            lockSetup(true);
+            shutter.disabled = true;
+            shutterLabel.textContent = 'Sesi Selesai ✨';
+            restartButton.hidden = false;
+            setProgress('Strip siap dihias 🎀');
+
+            updateFrameColorRow();
+            renderStrip();
+            buildFramePicker();
+
+            if (window.AmphiboothAnim) {
+                window.AmphiboothAnim.strip(stage);
+                window.AmphiboothAnim.confetti(stripCanvas, 22);
+            }
+
+            // Panel kanan otomatis kebuka di mobile.
+            openSheet(true);
+        }
+
+        // ----------------------------------------------
+        // RENDER PREVIEW STRIP
+        // ----------------------------------------------
+        function currentShots() {
+            return state.shots.filter(Boolean).map(function (shot) {
+                return shot.canvas;
+            });
+        }
+
+        function renderStrip(hiRes) {
+            if (!window.Strip || currentShots().length === 0) {
+                return null;
+            }
+
+            const rendered = window.Strip.render({
+                shots: currentShots(),
+                frame: state.frame,
+                frameColor: state.frameColor,
+                caption: state.caption,
+                dateStamp: state.dateStamp,
+                effect: state.effect,
+                hiRes: Boolean(hiRes),
+                // Mode demo: hasil selalu pakai watermark biar jelas ini versi coba-coba.
+                watermark: appConfig.demo
+            });
+
+            // Gambar ke canvas yang sudah ada di DOM (supaya print CSS tetap kena).
+            stripCanvas.width = rendered.width;
+            stripCanvas.height = rendered.height;
+            stripCanvas.getContext('2d').drawImage(rendered, 0, 0);
+
+            return rendered;
+        }
+
+        function updateFrameColorRow() {
+            frameColorRow.classList.toggle('hidden', state.frame !== 'solid');
+        }
+
+        // ----------------------------------------------
+        // PEMILIH FRAME (kartu + thumbnail visual)
+        // ----------------------------------------------
+        // User tidak perlu nebak-nebak dari nama: tiap opsi dirender
+        // langsung pakai 3 foto sesi ini, ukuran kecil (scale 0.16).
+        function frameThumbnail(frameId) {
+            const shots = currentShots();
+
+            if (!shots.length) {
+                return null;
+            }
+
+            return window.Strip.render({
+                shots: shots,
+                frame: frameId,
+                frameColor: state.frameColor,
+                caption: state.caption,
+                dateStamp: state.dateStamp,
+                effect: 'none',
+                scale: 0.22
+            });
+        }
+
+        function buildFramePicker() {
+            if (!window.Strip || !window.Strip.picker) {
+                return;
+            }
+
+            if (!currentShots().length) {
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+
+            window.Strip.picker.forEach(function (frameId) {
+                const preset = window.Strip.presets[frameId] || { label: frameId };
+
+                const card = document.createElement('button');
+                card.type = 'button';
+                card.className = 'frame-card' + (frameId === state.frame ? ' active' : '');
+                card.dataset.frame = frameId;
+                card.setAttribute('aria-label', 'Pakai frame ' + preset.label);
+                card.setAttribute('aria-pressed', frameId === state.frame ? 'true' : 'false');
+
+                const holder = document.createElement('span');
+                holder.className = 'frame-thumb';
+
+                const thumb = frameThumbnail(frameId);
+
+                if (thumb) {
+                    holder.appendChild(thumb);
+                }
+
+                const name = document.createElement('span');
+                name.className = 'frame-name';
+                name.textContent = preset.label;
+
+                card.appendChild(holder);
+                card.appendChild(name);
+                fragment.appendChild(card);
+            });
+
+            frameList.innerHTML = '';
+            frameList.appendChild(fragment);
+        }
+
+        // Thumbnail frame "solid" ikut warna yang dipilih.
+        function refreshSolidThumbnail() {
+            const holder = frameList.querySelector('[data-frame="solid"] .frame-thumb');
+
+            if (!holder) {
+                return;
+            }
+
+            const thumb = frameThumbnail('solid');
+
+            if (thumb) {
+                holder.innerHTML = '';
+                holder.appendChild(thumb);
+            }
+        }
+
+        // ----------------------------------------------
+        // EVENT: FILTER (AI)
+        // ----------------------------------------------
+        document.querySelectorAll('[data-filter]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                if (state.phase !== 'setup') {
+                    return;
+                }
+
+                document.querySelectorAll('[data-filter]').forEach(function (other) {
+                    other.classList.remove('active');
+                });
+
+                button.classList.add('active');
+                state.filter = button.dataset.filter;
+
+                if (window.faceFilter) {
+                    window.faceFilter.setFilter(state.filter);
+                }
+            });
+        });
+
+        // ----------------------------------------------
+        // EVENT: FRAME / CAPTION / EFEK
+        // ----------------------------------------------
+        frameList.addEventListener('click', function (event) {
+            const button = event.target.closest('[data-frame]');
+
+            if (!button) {
+                return;
+            }
+
+            frameList.querySelectorAll('.frame-card').forEach(function (other) {
+                other.classList.remove('active');
+                other.setAttribute('aria-pressed', 'false');
+            });
+            button.classList.add('active');
+            button.setAttribute('aria-pressed', 'true');
+
+            state.frame = button.dataset.frame;
+            updateFrameColorRow();
+            renderStrip();
+        });
+
+        frameColorInput.addEventListener('input', function () {
+            state.frameColor = frameColorInput.value;
+
+            if (state.frame === 'solid') {
+                renderStrip();
+                refreshSolidThumbnail();
+            }
+        });
+
+        captionInput.addEventListener('input', function () {
+            state.caption = captionInput.value.slice(0, 80);
+            renderStrip();
+        });
+
+        dateToggle.addEventListener('change', function () {
+            state.dateStamp = dateToggle.checked;
+            renderStrip();
+        });
+
+        document.getElementById('effect-list').addEventListener('click', function (event) {
+            const button = event.target.closest('[data-effect]');
+
+            if (!button) {
+                return;
+            }
+
+            document.querySelectorAll('[data-effect]').forEach(function (other) {
+                other.classList.remove('active');
+            });
+            button.classList.add('active');
+
+            state.effect = button.dataset.effect;
+            renderStrip();
+        });
+
+        // ----------------------------------------------
+        // EVENT: KAMERA & SETTING
+        // ----------------------------------------------
+        mirrorToggle.addEventListener('change', function () {
+            state.mirror = mirrorToggle.checked;
+            video.classList.toggle('no-mirror', !state.mirror);
+            faceCanvas.classList.toggle('force-flip', !state.mirror);
+        });
+
+        soundToggle.addEventListener('change', function () {
+            state.sound = soundToggle.checked;
+        });
+
+        cameraSelect.addEventListener('change', startCamera);
+        qualitySelect.addEventListener('change', startCamera);
+
+        // ----------------------------------------------
+        // EVENT: SHUTTER / RETAKE
+        // ----------------------------------------------
+        shutter.addEventListener('click', function () {
+            if (state.phase !== 'setup') {
+                return;
+            }
+
+            audioCtx();
+
+            const firstEmpty = state.shots.findIndex(function (shot) {
+                return !shot;
+            });
+
+            if (firstEmpty === -1) {
+                return;
+            }
+
+            captureSlot(firstEmpty);
+        });
+
+        slotEls.forEach(function (slot, index) {
+            slot.addEventListener('click', function () {
+                if (state.phase !== 'finish' || !state.shots[index]) {
+                    return;
+                }
+
+                // Retake cuma slot ini.
+                state.busy = false;
+                stage.classList.add('hidden');
+                viewport.classList.remove('hidden');
+                stripCanvas.classList.add('hidden');
+                setPanels(setupPanel);
+                state.phase = 'setup';
+                shutter.disabled = false;
+
+                captureSlot(index);
+            });
+        });
+
+        function resetSession() {
+            state.phase = 'setup';
+            state.shots = new Array(SHOT_COUNT).fill(null);
+            state.busy = false;
+            state.savedCollage = null;
+
+            renderSlots();
+            setPanels(setupPanel);
+            viewport.classList.remove('hidden');
+            stage.classList.add('hidden');
+            lockSetup(false);
+            shutter.disabled = false;
+            restartButton.hidden = true;
+            shutterLabel.textContent = 'Mulai Sesi (3 foto)';
+            setProgress('Foto 1/3');
+
+            if (window.faceFilter && window.faceFilter.setFilter) {
+                window.faceFilter.setFilter(state.filter);
+            }
+        }
+
+        restartButton.addEventListener('click', resetSession);
+        finishReset.addEventListener('click', resetSession);
+        againButton.addEventListener('click', resetSession);
+
+        // ----------------------------------------------
+        // MOBILE SHEET
+        // ----------------------------------------------
+        function openSheet(open) {
+            sidePanel.classList.toggle('sheet-open', open);
+            sheetToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        }
+
+        sheetToggle.addEventListener('click', function () {
+            openSheet(!sidePanel.classList.contains('sheet-open'));
+        });
+
+        // ----------------------------------------------
+        // SIMPAN
+        // ----------------------------------------------
+        function dataUrlOf(canvas, quality) {
+            return canvas.toDataURL('image/jpeg', quality || 0.88);
+        }
+
+        saveButton.addEventListener('click', async function () {
+            if (state.saving || state.phase !== 'finish') {
+                return;
+            }
+
+            if (appConfig.demo) {
+                // Mode coba-coba: tidak ada yang dikirim ke server, tapi
+                // user tetap bisa lanjut ke layar hasil buat unduh strip-nya.
+                state.phase = 'result';
+                showResult();
+                toast('Mode coba-coba: strip bisa diunduh, tapi belum kesimpan 💾');
+                return;
+            }
+
+            state.saving = true;
+            saveButton.disabled = true;
+            saveButton.textContent = 'Menyimpan... 💫';
+
+            // Animasi "mencetak" 1 detik.
+            printingOverlay.hidden = false;
+            openSheet(false);
+
+            const sheet = renderStrip(true);
+            await wait(1000);
+
+            try {
+                const response = await fetch(appConfig.collagesStore, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken
+                    },
+                    body: JSON.stringify({
+                        layout: LAYOUT,
+                        frame: state.frame,
+                        frame_color: state.frameColor,
+                        caption: state.caption,
+                        date_stamp: state.dateStamp,
+                        shots: currentShots().map(function (canvas) {
+                            return dataUrlOf(canvas, 0.85);
+                        }),
+                        sheet: sheet.toDataURL('image/jpeg', 0.88)
+                    })
+                });
+
+                const data = await response.json().catch(function () {
+                    return {};
+                });
+
+                if (response.status === 401) {
+                    window.location.href = appConfig.loginUrl;
+                    return;
+                }
+
+                if (!response.ok || !data.success) {
+                    const message = data.message
+                        || (data.errors && data.errors.sheet && data.errors.sheet[0])
+                        || (data.errors && data.errors.shots && data.errors.shots[0])
+                        || 'Gagal menyimpan strip 🥺';
+                    toast(message, true);
+                    return;
+                }
+
+                state.savedCollage = data.collage;
+                state.phase = 'result';
+
+                showResult();
+                toast(data.message || 'Strip tersimpan 💖');
+            } catch (error) {
+                console.log(error);
+                toast('Koneksi ke server gagal, coba lagi ya 🥺', true);
+            } finally {
+                printingOverlay.hidden = true;
+                state.saving = false;
+                saveButton.disabled = false;
+                saveButton.textContent = 'Simpan ke Gallery 💖';
+            }
+        });
+
+        // ----------------------------------------------
+        // FASE HASIL
+        // ----------------------------------------------
+        function showResult() {
+            setPanels(resultPanel);
+
+            if (state.savedCollage && state.savedCollage.share_url) {
+                resultHint.textContent = 'Tersimpan di gallery — link share-nya juga siap dibagikan.';
+                galleryLink.href = appConfig.galleryUrl;
+                galleryLink.textContent = 'Ke Gallery 📚';
+                shareButton.disabled = false;
+            } else if (appConfig.demo) {
+                resultHint.textContent = 'Mode coba-coba: strip-nya ada watermark demo. Daftar biar kesimpan di gallery & tanpa watermark.';
+                galleryLink.href = appConfig.registerUrl;
+                galleryLink.textContent = 'Daftar biar kesimpan 💖';
+                shareButton.disabled = true;
+            }
+
+            updateResultSize();
+            openSheet(false);
+        }
+
+        // Info ukuran cetak: yang diunduh = canvas layar x 1.5, dan
+        // 300 dpi dianggap aman buat cetak foto.
+        function updateResultSize() {
+            if (!resultSize) {
+                return;
+            }
+
+            const scale = (window.Strip && window.Strip.exportScale) || 1.5;
+            const fileW = Math.round(stripCanvas.width * scale);
+            const fileH = Math.round(stripCanvas.height * scale);
+
+            const inch = function (px) {
+                return Math.round((px / 300) * 10) / 10;
+            };
+
+            resultSize.textContent = 'File yang diunduh ' + fileW + ' × ' + fileH
+                + ' px — aman dicetak sampai ' + inch(fileW) + ' × ' + inch(fileH) + ' inci (300 dpi).';
+        }
+
+        // ----------------------------------------------
+        // DOWNLOAD
+        // ----------------------------------------------
+        downloadButton.addEventListener('click', function () {
+            if (state.savedCollage && state.savedCollage.download_url) {
+                triggerDownload(state.savedCollage.download_url, state.savedCollage.download_name);
+                toast('Strip-nya lagi diunduh 💾');
+                return;
+            }
+
+            const sheet = renderStrip(true);
+
+            if (!sheet) {
+                toast('Belum ada strip buat diunduh 🥺', true);
+                return;
+            }
+
+            const name = 'amphibooth-strip3-' + new Date().toISOString().slice(0, 10) + '.jpg';
+
+            sheet.toBlob(function (blob) {
+                if (!blob) {
+                    toast('Gagal menyiapkan file 🥺', true);
+                    return;
+                }
+
+                const url = URL.createObjectURL(blob);
+                triggerDownload(url, name);
+                setTimeout(function () {
+                    URL.revokeObjectURL(url);
+                }, 4000);
+                toast('Strip-nya lagi diunduh 💾');
+            }, 'image/jpeg', 0.92);
+        });
+
+        function triggerDownload(url, filename) {
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename || 'amphibooth-strip.jpg';
+            link.rel = 'noopener';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        }
+
+        // ----------------------------------------------
+        // PRINT
+        // ----------------------------------------------
+        printButton.addEventListener('click', function () {
+            openSheet(false);
+
+            // Pastikan canvas sudah ter-render sebelum print dialog terbuka.
+            renderStrip();
+            setTimeout(function () {
+                window.print();
+            }, 120);
+        });
+
+        // ----------------------------------------------
+        // SHARE
+        // ----------------------------------------------
+        shareButton.addEventListener('click', async function () {
+            const url = state.savedCollage && state.savedCollage.share_url;
+
+            if (!url) {
+                toast('Simpan strip dulu, baru bisa dibagikan 🔗', true);
+                return;
+            }
+
+            try {
+                if (navigator.share) {
+                    await navigator.share({
+                        title: 'Strip Amphibooth',
+                        text: 'Lihat strip photobooth aku! 📸',
+                        url: url
+                    });
+                    return;
+                }
+
+                await navigator.clipboard.writeText(url);
+                toast('Link share disalin! Tempel di chat 💌');
+            } catch (error) {
+                console.log(error);
+                // Fallback kalau clipboard diblokir browser.
+                window.prompt('Salin link ini buat dibagikan:', url);
+            }
+        });
+
+        // ----------------------------------------------
+        // START
+        // ----------------------------------------------
+        if (window.faceFilter && window.faceFilter.setFilter) {
+            window.faceFilter.setFilter('none');
+        }
+
+        setPanels(setupPanel);
+        renderSlots();
+
+        if (appConfig.demo) {
+            saveButton.textContent = 'Selesai & Unduh 💾';
+        }
+
+        startCamera();
+
+        // Kalau frame kamera baru muncul belakangan (izin terlambat diberikan,
+        // atau stream lambat), tombol jepret otomatis aktif.
+        setInterval(function () {
+            if (state.phase !== 'setup' || !shutter.disabled) {
+                return;
+            }
+
+            if (video.videoWidth && video.videoHeight) {
+                shutter.disabled = false;
+                shutterLabel.textContent = state.shots.some(Boolean)
+                    ? 'Lanjut Jepret 📸'
+                    : 'Mulai Sesi (3 foto)';
+                loadingText.style.display = 'none';
+                video.style.display = 'block';
+            }
+        }, 400);
+
+        // Font caption butuh sedikit waktu; render ulang setelah siap.
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(function () {
+                if (state.phase === 'finish') {
+                    renderStrip();
+                }
+            });
+        }
+
+        // Biar bisa dites tanpa kamera (dipakai juga sama tes otomatis).
+        window.boothApp = {
+            state: state,
+            compositeFrame: compositeFrame,
+            captureSlot: captureSlot,
+            enterFinish: enterFinish,
+            renderStrip: renderStrip,
+            resetSession: resetSession,
+            setShot: function (index, canvas) {
+                const thumb = coverCanvas(canvas, 320, 240);
+                state.shots[index] = { canvas: canvas, thumbUrl: thumb.toDataURL('image/jpeg', 0.8) };
+                renderSlots();
+            }
+        };
+    });
+})();

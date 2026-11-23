@@ -1,0 +1,277 @@
+/* ==========================================================================
+   AMPHIBOOTH - PROFILE CSS
+   Halaman profil: ringkasan data, ubah nama, ganti password, hapus data.
+   Base (nav, background, .main-content) dipinjam dari gallery.css.
+   ========================================================================== */
+
+.profile-main {
+    max-width: 980px;
+    text-align: left;
+}
+
+.profile-main .header-title {
+    text-align: center;
+}
+
+.flash-error {
+    background-color: #FFECEC;
+    border: 3px solid #E57373;
+    border-radius: 20px;
+    padding: 14px 20px;
+    margin: 20px auto 0;
+    max-width: 720px;
+    font-weight: 700;
+    color: #8C2F2F;
+}
+
+.flash-error p + p {
+    margin-top: 6px;
+}
+
+/* Ringkasan data */
+.profile-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin: 26px 0 22px;
+}
+
+.stat-card {
+    background-color: #FFFFFF;
+    border: 3px solid #795548;
+    border-radius: 22px;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 0px 8px 0px rgba(121, 85, 72, 0.15);
+}
+
+.stat-value {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1.9rem;
+    line-height: 1;
+    color: #795548;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #9C7A6A;
+    text-align: center;
+}
+
+/* Kartu form */
+.profile-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    align-items: start;
+}
+
+.panel-box {
+    background-color: #FFFFFF;
+    border: 3px solid #795548;
+    border-radius: 26px;
+    padding: 22px;
+    box-shadow: 0px 10px 0px rgba(121, 85, 72, 0.15);
+}
+
+.panel-box h3 {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1.35rem;
+    margin-bottom: 10px;
+    color: #795548;
+}
+
+.panel-hint {
+    font-size: 0.95rem;
+    color: #8D6E63;
+    line-height: 1.45;
+    margin-bottom: 14px;
+}
+
+.danger-box {
+    grid-column: 1 / -1;
+    border-color: #C0392B;
+    background-color: #FFF8F8;
+}
+
+.danger-box h3 {
+    color: #A5301F;
+}
+
+.panel-hint.hidden,
+.hidden {
+    display: none !important;
+}
+
+/* Form */
+.profile-form {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.profile-form label {
+    font-weight: 700;
+    font-size: 0.9rem;
+    margin-top: 6px;
+}
+
+.text-input {
+    width: 100%;
+    font-family: 'Quicksand', sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #795548;
+    background-color: #FFFDF9;
+    border: 2px solid #E3D5CB;
+    border-radius: 16px;
+    padding: 12px 14px;
+    margin-bottom: 6px;
+}
+
+.text-input:focus {
+    outline: none;
+    border-color: #FFC0CB;
+    box-shadow: 0 0 0 3px rgba(255, 192, 203, 0.35);
+}
+
+.text-input:disabled {
+    background-color: #F5EFE9;
+    color: #A1887F;
+    cursor: not-allowed;
+}
+
+/* Tombol */
+.btn-primary,
+.btn-danger {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 1rem;
+    border-radius: 30px;
+    padding: 12px 22px;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-primary {
+    background-color: #FFC0CB;
+    border: 3px solid #795548;
+    color: #795548;
+    box-shadow: 0px 5px 0px #795548;
+}
+
+.btn-danger {
+    background-color: #F6C7C1;
+    border: 3px solid #C0392B;
+    color: #8C2F2F;
+    box-shadow: 0px 5px 0px #C0392B;
+}
+
+.btn-primary:hover,
+.btn-danger:hover {
+    transform: translateY(-2px);
+}
+
+.btn-primary:active,
+.btn-danger:active {
+    transform: translateY(3px);
+    box-shadow: 0px 1px 0px rgba(121, 85, 72, 0.5);
+}
+
+/* Kuota */
+.quota-box {
+    background: #FFFDF9;
+    border: 3px solid #795548;
+    border-radius: 24px;
+    box-shadow: 0px 8px 0px rgba(121, 85, 72, 0.15);
+    padding: 20px 22px;
+    margin: 22px auto 0;
+    max-width: 720px;
+    text-align: left;
+}
+
+.quota-head h3 {
+    margin: 0 0 4px;
+    color: #795548;
+    font-size: 1.15rem;
+}
+
+.quota-note {
+    display: block;
+    font-size: 0.82rem;
+    color: #A9968A;
+    font-weight: 600;
+    margin-bottom: 14px;
+}
+
+.quota-row + .quota-row {
+    margin-top: 14px;
+}
+
+.quota-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #795548;
+    margin-bottom: 6px;
+}
+
+.quota-bar {
+    height: 14px;
+    border-radius: 999px;
+    background: #F5E6E8;
+    border: 2px solid #EAD7DA;
+    overflow: hidden;
+}
+
+.quota-bar span {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #FFC0CB, #FF8FA3);
+    transition: width 0.4s ease;
+}
+
+/* Link legal di bawah halaman */
+.profile-legal {
+    text-align: center;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #A9968A;
+    margin: 16px 0 34px;
+}
+
+.profile-legal a {
+    color: #795548;
+    text-decoration: none;
+}
+
+.profile-legal a:hover {
+    text-decoration: underline;
+}
+
+/* HP */
+@media (max-width: 780px) {
+    .profile-main {
+        text-align: left;
+    }
+
+    .profile-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .profile-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stat-value {
+        font-size: 1.6rem;
+    }
+}
