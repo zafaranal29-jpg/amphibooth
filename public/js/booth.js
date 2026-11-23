@@ -73,6 +73,8 @@
         const cameraState = document.getElementById('camera-state');
         const cameraStateText = document.getElementById('camera-state-text');
         const cameraRetry = document.getElementById('camera-retry');
+        const uploadButton = document.getElementById('upload-button');
+        const uploadInput = document.getElementById('upload-input');
 
         const frameList = document.getElementById('frame-list');
         const frameColorRow = document.getElementById('frame-color-row');
@@ -692,6 +694,125 @@
         }
 
         // ----------------------------------------------
+        // UPLOAD FOTO DARI GALERI ("your upload")
+        // ----------------------------------------------
+        function loadImageFile(file) {
+            // createImageBitmap menghormati EXIF orientation, jadi foto HP
+            // yang ketiduran tidak tampil miring.
+            if (window.createImageBitmap) {
+                return createImageBitmap(file, { imageOrientation: 'from-image' })
+                    .catch(function () {
+                        return createImageBitmap(file);
+                    });
+            }
+
+            return new Promise(function (resolve, reject) {
+                const url = URL.createObjectURL(file);
+                const img = new Image();
+
+                img.onload = function () {
+                    URL.revokeObjectURL(url);
+                    resolve(img);
+                };
+
+                img.onerror = function () {
+                    URL.revokeObjectURL(url);
+                    reject(new Error('foto tidak bisa dibaca'));
+                };
+
+                img.src = url;
+            });
+        }
+
+        /** Ubah file jadi "jepretan": dipotong penuh ke rasio frame kamera. */
+        function shotFromImage(source) {
+            const width = video.videoWidth || 960;
+            const height = video.videoHeight || 720;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+
+            const ctx = canvas.getContext('2d');
+            const scale = Math.max(width / source.width, height / source.height);
+            const drawW = source.width * scale;
+            const drawH = source.height * scale;
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, width, height);
+            ctx.drawImage(source, (width - drawW) / 2, (height - drawH) / 2, drawW, drawH);
+
+            return {
+                canvas: canvas,
+                thumbUrl: coverCanvas(canvas, 320, 240).toDataURL('image/jpeg', 0.8)
+            };
+        }
+
+        async function handleUpload(files) {
+            if (state.phase !== 'setup' || state.busy) {
+                toast('Upload cuma bisa sebelum masuk ke hias frame ya 💗', true);
+                return;
+            }
+
+            const list = Array.prototype.slice.call(files).filter(function (file) {
+                return /^image\//.test(file.type);
+            });
+
+            if (!list.length) {
+                toast('File-nya bukan gambar 🙈', true);
+                return;
+            }
+
+            if (list.length > SHOT_COUNT) {
+                toast('Kebanyakan! Dipakai ' + SHOT_COUNT + ' foto pertama aja ya 💗');
+            }
+
+            // Slot kosong diisi dulu; kalau sudah penuh, yang lama tertimpa.
+            const empty = [];
+            const taken = [];
+
+            state.shots.forEach(function (shot, index) {
+                (shot ? taken : empty).push(index);
+            });
+
+            const order = empty.concat(taken);
+
+            state.busy = true;
+            let ok = 0;
+
+            for (let i = 0; i < Math.min(list.length, SHOT_COUNT); i++) {
+                try {
+                    const source = await loadImageFile(list[i]);
+                    state.shots[order[i]] = shotFromImage(source);
+                    ok++;
+                    renderSlots();
+                } catch (error) {
+                    console.log(error);
+                }
+            }
+
+            state.busy = false;
+
+            if (!ok) {
+                toast('Fotonya gagal dibaca 🥺 Coba file lain ya.', true);
+                return;
+            }
+
+            toast(ok + ' foto masuk dari galeri 🖼️');
+
+            if (window.AmphiboothAnim) {
+                window.AmphiboothAnim.advance(slotStrip);
+            }
+
+            const filled = state.shots.filter(Boolean).length;
+
+            if (filled >= SHOT_COUNT) {
+                await wait(420);
+                enterFinish();
+            }
+        }
+
+        // ----------------------------------------------
         // MASUK FASE FRAME
         // ----------------------------------------------
         function enterFinish() {
@@ -967,6 +1088,24 @@
 
         cameraSelect.addEventListener('change', startCamera);
         qualitySelect.addEventListener('change', startCamera);
+
+        // Upload foto dari galeri HP.
+        uploadButton.addEventListener('click', function () {
+            if (state.phase !== 'setup') {
+                toast('Upload cuma bisa di langkah awal ya 💗', true);
+                return;
+            }
+
+            // Reset dulu supaya file yang sama bisa dipilih dua kali.
+            uploadInput.value = '';
+            uploadInput.click();
+        });
+
+        uploadInput.addEventListener('change', function () {
+            if (uploadInput.files && uploadInput.files.length) {
+                handleUpload(uploadInput.files);
+            }
+        });
 
         // Tombol cepat kamera: putar kamera & matikan/nyalakan.
         flipButton.addEventListener('click', flipCamera);

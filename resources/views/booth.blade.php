@@ -137,6 +137,17 @@
                         <i class="fa-solid fa-rotate-left"></i> Ulangi Semua
                     </button>
                 </div>
+
+                {{-- mode "your upload": pakai foto dari galeri HP, bukan kamera --}}
+                <div class="upload-row">
+                    <button class="btn-ghost btn-small" id="upload-button" type="button">
+                        <i class="fa-solid fa-image"></i> Upload dari galeri
+                    </button>
+                    <span class="hint-tight" id="upload-hint">
+                        Kamera ngadat atau mau foto lama? Boleh upload, tetap kena frame + efek 💗
+                    </span>
+                </div>
+                <input type="file" id="upload-input" accept="image/*" multiple hidden>
             </section>
 
             {{-- ============ PANEL LANGKAH ============ --}}

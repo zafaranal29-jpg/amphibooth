@@ -288,6 +288,21 @@ body {
     padding: 10px 16px;
 }
 
+/* Mode "your upload": foto dari galeri HP. */
+.upload-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.upload-row .hint-tight {
+    margin: 0;
+    max-width: 32ch;
+}
+
 .hud-chip {
     font-family: 'Fredoka', sans-serif;
     font-size: 0.8rem;
