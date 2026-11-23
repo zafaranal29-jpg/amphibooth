@@ -71,6 +71,26 @@
                             <span class="hud-chip hud-ai" id="filter-status">Menyiapkan filter AI...</span>
                         </div>
 
+                        {{-- tombol cepat kamera: putar kamera & matikan/nyalakan --}}
+                        <div class="viewport-controls">
+                            <button class="vp-btn" id="flip-button" type="button"
+                                    title="Putar kamera (depan/belakang)" aria-label="Putar kamera">
+                                <i class="fa-solid fa-camera-rotate"></i>
+                            </button>
+                            <button class="vp-btn" id="camera-power" type="button" aria-pressed="true"
+                                    title="Matikan kamera" aria-label="Matikan kamera">
+                                <i class="fa-solid fa-video" id="camera-power-icon"></i>
+                            </button>
+                        </div>
+
+                        {{-- keadaan kamera: mati manual atau izin ditolak --}}
+                        <div class="viewport-state hidden" id="camera-state">
+                            <p id="camera-state-text">Kamera dimatikan 😴</p>
+                            <button class="btn-ghost btn-small" id="camera-retry" type="button">
+                                <i class="fa-solid fa-rotate-right"></i> Nyalakan kamera
+                            </button>
+                        </div>
+
                         <div id="countdown">3</div>
                         <div id="camera-flash"></div>
                     </div>

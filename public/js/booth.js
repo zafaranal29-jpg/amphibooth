@@ -67,6 +67,12 @@
         const timerSelect = document.getElementById('timer-select');
         const mirrorToggle = document.getElementById('mirror-toggle');
         const soundToggle = document.getElementById('sound-toggle');
+        const flipButton = document.getElementById('flip-button');
+        const cameraPower = document.getElementById('camera-power');
+        const cameraPowerIcon = document.getElementById('camera-power-icon');
+        const cameraState = document.getElementById('camera-state');
+        const cameraStateText = document.getElementById('camera-state-text');
+        const cameraRetry = document.getElementById('camera-retry');
 
         const frameList = document.getElementById('frame-list');
         const frameColorRow = document.getElementById('frame-color-row');
@@ -99,6 +105,7 @@
             sound: true,
             saving: false,
             stream: null,
+            cameraOff: false,
             savedCollage: null,
             audio: null,
             busy: false
@@ -211,6 +218,94 @@
             }
         }
 
+        /**
+         * Overlay keadaan kamera (mati manual atau izin ditolak) + satu tombol
+         * buat nyalain lagi — jadi user tidak perlu refresh halaman.
+         */
+        function showCameraState(message, buttonLabel) {
+            cameraStateText.textContent = message;
+            cameraRetry.innerHTML = '<i class="fa-solid fa-rotate-right"></i> ' + buttonLabel;
+            cameraState.classList.remove('hidden');
+        }
+
+        function hideCameraState() {
+            cameraState.classList.add('hidden');
+        }
+
+        /** Sinkronkan ikon/status tombol power kamera. */
+        function setPowerState(on) {
+            state.cameraOff = !on;
+            cameraPower.setAttribute('aria-pressed', on ? 'true' : 'false');
+            cameraPower.setAttribute('title', on ? 'Matikan kamera' : 'Nyalakan kamera');
+            cameraPower.setAttribute('aria-label', on ? 'Matikan kamera' : 'Nyalakan kamera');
+            cameraPower.classList.toggle('is-off', !on);
+            cameraPowerIcon.className = on ? 'fa-solid fa-video' : 'fa-solid fa-video-slash';
+        }
+
+        /** Matikan kamera manual: hemat baterai & sopan secara privasi. */
+        function turnCameraOff() {
+            if (state.phase === 'capturing') {
+                toast('Tunggu sesi jepretnya kelar dulu ya ⏳', true);
+                return;
+            }
+
+            stopStream();
+            video.style.display = 'none';
+            loadingText.style.display = 'none';
+            setPowerState(false);
+            showCameraState('Kamera dimatikan 😴 Nyalakan lagi kalau siap foto.', 'Nyalakan kamera');
+
+            shutter.disabled = true;
+
+            if (state.phase === 'setup') {
+                shutterLabel.textContent = 'Kamera mati 😴';
+            }
+        }
+
+        function turnCameraOn() {
+            setPowerState(true);
+            hideCameraState();
+            startCamera();
+        }
+
+        /** Putar kamera: muter daftar kamera yang terdeteksi browser. */
+        function flipCamera() {
+            if (state.phase === 'capturing') {
+                toast('Tunggu sesi jepretnya kelar dulu ya ⏳', true);
+                return;
+            }
+
+            const options = Array.prototype.slice.call(cameraSelect.options);
+
+            // Nilai (deviceId) bisa kosong lebih dari sekali — mis. "Kamera utama"
+            // dan satu device yang belum punya label. Yang dihitung hanya kamera
+            // yang benar-benar berbeda, biar tombol flip tidak "ganti" ke kamera
+            // yang sama sambil ngasih pesan palsu.
+            const distinct = options.filter(function (option, index) {
+                return options.findIndex(function (other) {
+                    return other.value === option.value;
+                }) === index;
+            });
+
+            if (distinct.length < 2) {
+                toast('Cuma ada satu kamera di perangkat ini 🙈', true);
+                return;
+            }
+
+            const current = Math.max(0, distinct.findIndex(function (option) {
+                return option.value === cameraSelect.value;
+            }));
+
+            const next = distinct[(current + 1) % distinct.length];
+            cameraSelect.value = next.value;
+
+            setPowerState(true);
+            hideCameraState();
+            startCamera();
+
+            toast('Kamera: ' + next.textContent.trim() + ' 🔄');
+        }
+
         async function listCameras() {
             if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
                 return;
@@ -241,7 +336,11 @@
 
         async function startCamera() {
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                loadingText.textContent = 'Browser ini belum bisa akses kamera 😢 (butuh localhost atau HTTPS)';
+                loadingText.style.display = 'none';
+                showCameraState(
+                    'Browser ini belum bisa akses kamera 😢 Buka lewat localhost atau HTTPS ya.',
+                    'Coba lagi'
+                );
                 return;
             }
 
@@ -277,6 +376,10 @@
                 video.style.display = 'block';
                 loadingText.style.display = 'none';
 
+                // Kamera hidup: tutup overlay keadaan & sinkronkan tombol power.
+                hideCameraState();
+                setPowerState(true);
+
                 // Titik hijau berdenyut: kamera benar-benar siap.
                 if (window.AmphiboothAnim) {
                     window.AmphiboothAnim.ready(viewport);
@@ -293,18 +396,22 @@
                 await listCameras();
             } catch (error) {
                 console.log(error);
-                loadingText.style.display = 'block';
-                loadingText.textContent = 'Kamera tidak bisa dipakai 🥺 (' + (error.name || 'error') + ')';
+                loadingText.style.display = 'none';
+
+                let message = 'Kamera tidak bisa dipakai 🥺 (' + (error.name || 'error') + ')';
 
                 if (error.name === 'NotAllowedError') {
-                    loadingText.textContent = 'Izinkan akses kamera di browser, lalu refresh halaman ya 🥺';
+                    message = 'Izin kamera ditolak. Buka izin kamera di pengaturan browser, lalu coba lagi 🥺';
+                } else if (error.name === 'NotFoundError' || error.name === 'OverconstrainedError') {
+                    message = 'Kamera-nya tidak ketemu 🙈 Coba pilih kamera lain di panel pengaturan.';
                 }
 
                 // Tanpa kamera, jangan biarkan tombol jepret seolah siap.
                 shutter.disabled = true;
                 shutterLabel.textContent = 'Kamera belum siap 🥺';
 
-                toast('Izinkan akses kamera dulu ya biar bisa foto 📸', true);
+                showCameraState(message, 'Coba lagi');
+                toast(message, true);
             }
         }
 
@@ -861,6 +968,27 @@
         cameraSelect.addEventListener('change', startCamera);
         qualitySelect.addEventListener('change', startCamera);
 
+        // Tombol cepat kamera: putar kamera & matikan/nyalakan.
+        flipButton.addEventListener('click', flipCamera);
+
+        cameraPower.addEventListener('click', function () {
+            if (state.cameraOff) {
+                turnCameraOn();
+            } else {
+                turnCameraOff();
+            }
+        });
+
+        cameraRetry.addEventListener('click', function () {
+            if (state.cameraOff) {
+                turnCameraOn();
+            } else {
+                setPowerState(true);
+                hideCameraState();
+                startCamera();
+            }
+        });
+
         // ----------------------------------------------
         // EVENT: SHUTTER / RETAKE
         // ----------------------------------------------
@@ -1249,11 +1377,14 @@
         // Kalau frame kamera baru muncul belakangan (izin terlambat diberikan,
         // atau stream lambat), tombol jepret otomatis aktif.
         setInterval(function () {
-            if (state.phase !== 'setup' || !shutter.disabled) {
+            // Kamera dimatikan manual / belum ada stream hidup: jangan diusik.
+            if (state.phase !== 'setup' || !shutter.disabled || state.cameraOff) {
                 return;
             }
 
-            if (video.videoWidth && video.videoHeight) {
+            const hidups = state.stream && state.stream.active;
+
+            if (hidups && video.videoWidth && video.videoHeight) {
                 shutter.disabled = false;
                 shutterLabel.textContent = state.shots.some(Boolean)
                     ? 'Lanjut Jepret 📸'

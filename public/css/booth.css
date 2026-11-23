@@ -218,6 +218,76 @@ body {
     pointer-events: none;
 }
 
+/* Tombol cepat kamera (kanan bawah viewport): putar & matikan/nyalakan. */
+.viewport-controls {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    display: flex;
+    gap: 8px;
+    /* Di atas overlay keadaan kamera, biar tombol power tetap bisa
+       diklik buat nyalain kamera lagi. */
+    z-index: 9;
+}
+
+.vp-btn {
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    color: #795548;
+    background: rgba(255, 255, 255, 0.94);
+    border: 2px solid #795548;
+    border-radius: 50%;
+    box-shadow: 0 3px 0 rgba(121, 85, 72, 0.25);
+    cursor: pointer;
+    transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.vp-btn:hover {
+    transform: translateY(-2px);
+}
+
+.vp-btn.is-off {
+    background-color: #FFC0CB;
+}
+
+.vp-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Overlay keadaan kamera: mati manual atau izin ditolak. */
+.viewport-state {
+    position: absolute;
+    inset: 0;
+    z-index: 8;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 20px;
+    text-align: center;
+    background: rgba(230, 230, 250, 0.94);
+}
+
+.viewport-state p {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    color: #795548;
+    font-size: 1rem;
+    max-width: 90%;
+}
+
+.btn-small {
+    font-size: 0.9rem;
+    padding: 10px 16px;
+}
+
 .hud-chip {
     font-family: 'Fredoka', sans-serif;
     font-size: 0.8rem;
