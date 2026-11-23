@@ -39,6 +39,7 @@ Photo booth imut berbasis web: satu sesi **3 jepretan** jadi **satu strip vertik
 - **Kuota booth (global)** — 700 MB untuk semua akun (`QUOTA_TOTAL_MB`), supaya disk hosting tidak penuh; kalau penuh, penyimpanan baru ditolak dengan pesan jelas dan profil menampilkan pemakaian global.
 - **Foto mentah tidak publik** — `public/images/photos/.htaccess` menutup akses `shot_*` (403) dan memasang `X-Robots-Tag: noindex`; `robots.txt` menyembunyikan halaman privat.
 - Command `php artisan photos:prune` (ada `--dry-run`) untuk membuang file yatim di folder foto.
+- Helper `python storage/backfill-thumbs.py` (dry-run default, `--apply` buat jalan) untuk bikin thumbnail strip lama yang belum punya.
 - Tema pastel, halaman error custom 404/419/500, favicon sendiri, layout mobile dengan bottom sheet.
 - **PWA ringan** — `manifest.webmanifest` + ikon 192/512 (maskable) + `theme-color`: bisa "Add to Home Screen" dan kebuka fullscreen tanpa address bar. Tanpa service worker (booth butuh kamera + server, cache offline cuma bikin bug).
 - **Shortcut keyboard** — `Spasi` = jepret/lanjut, `R` = ulangi semua; diabaikan saat fokus di input caption.
