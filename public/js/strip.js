@@ -29,13 +29,62 @@
         mono: 'Consolas, "Courier New", monospace'
     };
 
+    /*
+     * Efek foto. Semuanya dirangkai dari CSS filter (ctx.filter), jadi
+     * menambah efek = menambah satu baris — tanpa file gambar dan tanpa
+     * pixel-loop yang berat di HP. `none` wajib ada (default).
+     *
+     * Nama id yang lama (grayscale/sepia/blur/invert/warm) JANGAN diubah:
+     * sudah kepakai di strip yang tersimpan.
+     */
     const EFFECTS = {
         none: 'none',
+
+        // --- dasar ---
         grayscale: 'grayscale(1)',
         sepia: 'sepia(0.85)',
         invert: 'invert(1)',
         blur: 'blur(5px)',
-        warm: 'saturate(1.2) contrast(1.05) brightness(1.03)'
+        warm: 'saturate(1.2) contrast(1.05) brightness(1.03)',
+
+        // --- hitam putih & film ---
+        mono: 'grayscale(1) contrast(1.12) brightness(1.02)',
+        noir: 'grayscale(1) contrast(1.4) brightness(0.95)',
+        silver: 'grayscale(0.9) brightness(1.1) contrast(1.06)',
+        fade: 'saturate(0.72) contrast(0.88) brightness(1.1)',
+        vintage70: 'sepia(0.5) saturate(1.1) contrast(0.94) brightness(1.02)',
+        lomo: 'saturate(1.55) contrast(1.28) brightness(0.97)',
+        vhs: 'saturate(1.35) contrast(1.12) hue-rotate(-8deg) blur(0.4px)',
+
+        // --- hangat ---
+        sunset: 'sepia(0.3) saturate(1.7) hue-rotate(-14deg) brightness(1.02)',
+        honey: 'sepia(0.32) saturate(1.35) brightness(1.06)',
+        peach: 'sepia(0.18) saturate(1.15) hue-rotate(-10deg) brightness(1.08)',
+        amber: 'sepia(0.45) saturate(1.45) brightness(1.02)',
+
+        // --- dingin ---
+        arctic: 'saturate(0.95) hue-rotate(165deg) brightness(1.08)',
+        ocean: 'saturate(1.25) hue-rotate(195deg) contrast(1.06)',
+        mint: 'saturate(1.15) hue-rotate(115deg) brightness(1.06)',
+
+        // --- kamera & film terkenal ---
+        polaroid: 'saturate(1.18) contrast(1.1) brightness(1.08)',
+        kodak: 'saturate(1.4) contrast(1.12) sepia(0.12)',
+        fujifilm: 'saturate(1.25) hue-rotate(-8deg) contrast(1.06) brightness(1.04)',
+
+        // --- gaya ---
+        dreamy: 'saturate(1.22) brightness(1.12) blur(0.5px)',
+        bloom: 'brightness(1.14) saturate(1.18) blur(0.6px)',
+        pastel: 'saturate(0.92) brightness(1.14) contrast(0.9)',
+        matte: 'contrast(0.86) brightness(1.08) saturate(0.94)',
+        cinematic: 'contrast(1.22) saturate(1.12) brightness(0.97)',
+        hdr: 'contrast(1.32) saturate(1.28) brightness(1.03)',
+        y2k: 'saturate(1.45) contrast(1.18) hue-rotate(14deg) brightness(1.05)',
+        cyberpunk: 'saturate(1.7) contrast(1.22) hue-rotate(305deg)',
+        comic: 'contrast(1.5) saturate(1.65)',
+        sketch: 'grayscale(1) contrast(1.75) brightness(1.12)',
+        duotone: 'grayscale(1) sepia(1) hue-rotate(190deg) saturate(3.2) contrast(1.1)',
+        riso: 'saturate(1.35) contrast(1.25) hue-rotate(-12deg)'
     };
 
     // ----------------------------------------------

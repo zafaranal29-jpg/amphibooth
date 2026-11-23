@@ -533,6 +533,39 @@ body {
     padding: 10px 6px;
 }
 
+/* Daftar efek: banyak pilihan, jadi dibikin bisa digeser di dalam kotaknya
+   (jangan sampai panel jadi panjang dan tombol simpan tenggelam). */
+.effect-scroll {
+    max-height: 214px;
+    overflow-y: auto;
+    padding-right: 6px;
+    overscroll-behavior: contain;
+}
+
+.effect-scroll::-webkit-scrollbar { width: 8px; }
+.effect-scroll::-webkit-scrollbar-thumb {
+    background: #FFC0CB;
+    border-radius: 10px;
+    border: 1px solid #795548;
+}
+
+.chip-count {
+    font-family: 'Quicksand', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #795548;
+    background-color: #FFD9E0;
+    border: 2px solid #795548;
+    border-radius: 12px;
+    padding: 1px 8px;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+.hint-tight {
+    margin-top: 6px;
+}
+
 /* Frame picker — kartu dengan thumbnail visual */
 .frame-grid {
     display: grid;

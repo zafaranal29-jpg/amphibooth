@@ -803,14 +803,40 @@
             renderStrip();
         });
 
-        document.getElementById('effect-list').addEventListener('click', function (event) {
+        const effectList = document.getElementById('effect-list');
+
+        /*
+         * Daftar efek mengikuti strip.js (satu sumber kebenaran): kalau ada
+         * tombol yang id-nya tidak dikenal di sana, tombolnya disembunyikan,
+         * dan counter di judul menunjukkan jumlah efek yang benar-benar ada.
+         */
+        (function initEffectList() {
+            const ids = (window.Strip && window.Strip.effects) || [];
+            const counter = document.getElementById('effect-count');
+
+            if (counter && ids.length) {
+                counter.textContent = ids.length + ' efek';
+            }
+
+            if (!ids.length) {
+                return;
+            }
+
+            effectList.querySelectorAll('[data-effect]').forEach(function (button) {
+                if (ids.indexOf(button.dataset.effect) === -1) {
+                    button.hidden = true;
+                }
+            });
+        })();
+
+        effectList.addEventListener('click', function (event) {
             const button = event.target.closest('[data-effect]');
 
             if (!button) {
                 return;
             }
 
-            document.querySelectorAll('[data-effect]').forEach(function (other) {
+            effectList.querySelectorAll('[data-effect]').forEach(function (other) {
                 other.classList.remove('active');
             });
             button.classList.add('active');

@@ -200,16 +200,52 @@
                         <span>Tampilkan tanggal</span>
                     </label>
 
-                    <h3 class="panel-subtitle">Efek Foto</h3>
+                    <h3 class="panel-subtitle">Efek Foto <span class="chip-count" id="effect-count"></span></h3>
 
-                    <div class="filter-list filter-list-inline" id="effect-list">
+                    <div class="filter-list filter-list-inline effect-scroll" id="effect-list">
                         <button class="btn-filter active" data-effect="none">Original</button>
                         <button class="btn-filter" data-effect="warm">Hangat</button>
                         <button class="btn-filter" data-effect="grayscale">B&amp;W</button>
                         <button class="btn-filter" data-effect="sepia">Vintage</button>
-                        <button class="btn-filter" data-effect="blur">Dreamy</button>
+                        <button class="btn-filter" data-effect="blur">Blur Lembut</button>
                         <button class="btn-filter" data-effect="invert">Alien</button>
+
+                        <button class="btn-filter" data-effect="mono">Mono</button>
+                        <button class="btn-filter" data-effect="noir">Noir</button>
+                        <button class="btn-filter" data-effect="silver">Silver</button>
+                        <button class="btn-filter" data-effect="fade">Fade</button>
+                        <button class="btn-filter" data-effect="vintage70">70s</button>
+                        <button class="btn-filter" data-effect="lomo">Lomo</button>
+                        <button class="btn-filter" data-effect="vhs">VHS</button>
+
+                        <button class="btn-filter" data-effect="sunset">Sunset</button>
+                        <button class="btn-filter" data-effect="honey">Honey</button>
+                        <button class="btn-filter" data-effect="peach">Peach</button>
+                        <button class="btn-filter" data-effect="amber">Amber</button>
+
+                        <button class="btn-filter" data-effect="arctic">Arctic</button>
+                        <button class="btn-filter" data-effect="ocean">Ocean</button>
+                        <button class="btn-filter" data-effect="mint">Mint</button>
+
+                        <button class="btn-filter" data-effect="polaroid">Polaroid</button>
+                        <button class="btn-filter" data-effect="kodak">Kodak</button>
+                        <button class="btn-filter" data-effect="fujifilm">Fujifilm</button>
+
+                        <button class="btn-filter" data-effect="dreamy">Dreamy</button>
+                        <button class="btn-filter" data-effect="bloom">Bloom</button>
+                        <button class="btn-filter" data-effect="pastel">Pastel</button>
+                        <button class="btn-filter" data-effect="matte">Matte</button>
+                        <button class="btn-filter" data-effect="cinematic">Cinematic</button>
+                        <button class="btn-filter" data-effect="hdr">HDR</button>
+                        <button class="btn-filter" data-effect="y2k">Y2K</button>
+                        <button class="btn-filter" data-effect="cyberpunk">Cyberpunk</button>
+                        <button class="btn-filter" data-effect="comic">Comic</button>
+                        <button class="btn-filter" data-effect="sketch">Sketch</button>
+                        <button class="btn-filter" data-effect="duotone">Duotone</button>
+                        <button class="btn-filter" data-effect="riso">Riso</button>
                     </div>
+
+                    <p class="panel-hint hint-tight">Geser daftarnya buat lihat efek lain ⤓</p>
 
                     <div class="action-buttons">
                         <button class="btn-save" id="save-button" type="button">Simpan ke Gallery 💖</button>
