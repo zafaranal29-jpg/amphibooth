@@ -472,12 +472,15 @@ body {
 }
 
 .filter-list {
-    display: flex;
-    flex-direction: column;
+    /* Dua kolom: 7 filter muat tanpa kotak scroll yang motong pill terakhir. */
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 9px;
-    max-height: 300px;
-    overflow-y: auto;
-    padding-right: 4px;
+}
+
+.filter-list .btn-filter {
+    text-align: center;
+    padding-inline: 8px;
 }
 
 .filter-list::-webkit-scrollbar { width: 8px; }
@@ -899,11 +902,31 @@ body {
    ========================================================================== */
 @media (max-width: 900px) {
     .main-content {
-        padding: 20px 14px 120px;
+        /* Ruang bawah = tinggi strip bottom sheet (56px) + napas, supaya
+           tombol shutter & slot terakhir tidak ketutup sheet. */
+        padding: 12px 14px calc(96px + env(safe-area-inset-bottom, 0px));
+    }
+
+    /* Header diringkas: di HP ruang vertikal mahal, kamera yang utama. */
+    .top-nav {
+        margin-top: 14px;
     }
 
     .header-title h1 {
-        font-size: 2.2rem;
+        font-size: 1.9rem;
+        margin-bottom: 2px;
+    }
+
+    .header-title p {
+        font-size: 0.95rem;
+        margin-bottom: 14px;
+    }
+
+    .demo-banner {
+        margin: 0 auto 14px;
+        padding: 9px 12px;
+        font-size: 0.84rem;
+        line-height: 1.4;
     }
 
     .booth-layout {
@@ -937,11 +960,13 @@ body {
         border-top: 3px solid #795548;
         border-radius: 26px 26px 0 0;
         box-shadow: 0 -10px 30px rgba(121, 85, 72, 0.25);
-        padding: 10px 14px 22px;
+        padding: 8px 14px 18px;
         max-height: 82vh;
         overflow-y: auto;
+        overscroll-behavior: contain;
         gap: 12px;
-        transform: translateY(calc(100% - 62px));
+        /* 56px = tinggi bibir sheet yang kelihatan (pegangan "Pengaturan"). */
+        transform: translateY(calc(100% - 56px));
         transition: transform 0.3s ease;
     }
 
@@ -955,7 +980,7 @@ body {
         justify-content: center;
         gap: 8px;
         width: 100%;
-        padding: 10px;
+        padding: 9px;
         background-color: #FFC0CB;
         border: 2px solid #795548;
         border-radius: 16px;
@@ -1000,17 +1025,42 @@ body {
     }
 
     #toast {
-        bottom: calc(78px + env(safe-area-inset-bottom, 0px));
+        bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    }
+}
+
+/* HP pendek (mis. iPhone SE / Android 5") — buang teks sekunder,
+   kamera & tombol jepret harus kebaca tanpa scroll. */
+@media (max-width: 900px) and (max-height: 740px) {
+    .header-title p {
+        display: none;
+    }
+
+    /* Layar pendek: kamera dibuat lebih lebar (16:10) supaya tombol
+       jepret tetap utuh di atas bibir bottom sheet tanpa perlu scroll.
+       Feed-nya object-fit: cover, jadi tidak gepeng. */
+    .camera-viewport {
+        aspect-ratio: 16 / 10;
+    }
+
+    .demo-banner {
+        padding: 7px 10px;
+        font-size: 0.76rem;
+        margin-bottom: 10px;
+    }
+
+    .header-title h1 {
+        font-size: 1.7rem;
     }
 }
 
 @media (max-width: 480px) {
-    .filter-list {
-        max-height: 220px;
+    .header-title h1 {
+        font-size: 1.7rem;
     }
 
     .header-title p {
-        font-size: 0.95rem;
+        font-size: 0.88rem;
     }
 }
 

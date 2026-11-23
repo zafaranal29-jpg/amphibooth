@@ -241,13 +241,20 @@
 
     <div id="toast" role="status" aria-live="polite"></div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+    {{--
+        Semua script pakai `defer` supaya parsing HTML tidak nunggu CDN.
+        Kalau jsdelivr lambat/diblokir, halaman tetap tampil dan kamera
+        masih bisa jalan — filternya saja yang jatuh ke status error
+        (face-filter.js sudah jaga `typeof FaceMesh === 'undefined'`).
+        Urutan defer dipertahankan browser, jadi booth.js tetap jalan terakhir.
+    --}}
+    <script defer src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
 
-    <script src="{{ asset('js/face-filter.js') }}?v={{ filemtime(public_path('js/face-filter.js')) }}"></script>
-    <script src="{{ asset('js/strip.js') }}?v={{ filemtime(public_path('js/strip.js')) }}"></script>
-    <script src="{{ asset('js/booth.js') }}?v={{ filemtime(public_path('js/booth.js')) }}"></script>
+    <script defer src="{{ asset('js/face-filter.js') }}?v={{ filemtime(public_path('js/face-filter.js')) }}"></script>
+    <script defer src="{{ asset('js/strip.js') }}?v={{ filemtime(public_path('js/strip.js')) }}"></script>
+    <script defer src="{{ asset('js/booth.js') }}?v={{ filemtime(public_path('js/booth.js')) }}"></script>
 
     @include('partials.animations-scripts')
 </body>
