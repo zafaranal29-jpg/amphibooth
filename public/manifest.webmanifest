@@ -1,7 +1,7 @@
 {
     "name": "Amphibooth — Photo Booth Imut",
     "short_name": "Amphibooth",
-    "description": "Photo booth online: 3 pose jadi 1 strip cantik, 15 frame, filter yang ngikutin gerak kepala.",
+    "description": "Photo booth online: 1-4 pose jadi 1 strip cantik, 15 frame, filter yang ngikutin gerak kepala.",
     "lang": "id",
     "dir": "ltr",
     "start_url": "./",
